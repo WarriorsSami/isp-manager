@@ -1,4 +1,4 @@
-use mobc_postgres::tokio_postgres;
+use r2d2_oracle::r2d2;
 use serde::Serialize;
 use std::convert::Infallible;
 use thiserror::Error;
@@ -7,13 +7,13 @@ use warp::{http::StatusCode, Rejection, Reply};
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("error getting connection from DB pool: {0}")]
-    DBPoolError(mobc::Error<tokio_postgres::Error>),
+    DBPool(r2d2::Error),
     #[error("error executing DB query: {0}")]
-    DBQueryError(#[from] tokio_postgres::Error),
+    DBQuery(#[from] oracle::Error),
     #[error("error creating table: {0}")]
-    DBInitError(tokio_postgres::Error),
+    DBInit(oracle::Error),
     #[error("error reading file: {0}")]
-    ReadFileError(#[from] std::io::Error),
+    ReadFile(#[from] std::io::Error),
 }
 
 #[derive(Serialize)]
@@ -36,9 +36,19 @@ pub async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply,
         message = "Invalid Body";
     } else if let Some(e) = err.find::<Error>() {
         match e {
-            Error::DBQueryError(_) => {
-                code = StatusCode::INTERNAL_SERVER_ERROR;
-                message = "Could not Execute request";
+            Error::DBQuery(e) => {
+                eprintln!("error executing query: {:?}", e);
+
+                match e {
+                    oracle::Error::NoDataFound => {
+                        code = StatusCode::NOT_FOUND;
+                        message = "Not Found";
+                    }
+                    _ => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = "Could not execute request";
+                    }
+                }
             }
             _ => {
                 eprintln!("unhandled application error: {:?}", err);

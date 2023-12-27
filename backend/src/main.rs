@@ -1,63 +1,42 @@
-use mobc::{Connection, Pool};
-use mobc_postgres::{tokio_postgres, PgConnectionManager};
+use r2d2_oracle::{r2d2, OracleConnectionManager};
 use std::convert::Infallible;
-use tokio_postgres::NoTls;
 use warp::{
     http::{header, Method},
     Filter, Rejection,
 };
 
+mod config;
+mod contract;
+mod customer;
 mod db;
 mod error;
-mod handler;
+mod invoice;
+mod subscription;
+mod payment;
 
 type Result<T> = std::result::Result<T, Rejection>;
-type DBCon = Connection<PgConnectionManager<NoTls>>;
-type DBPool = Pool<PgConnectionManager<NoTls>>;
+type DBCon = r2d2::PooledConnection<OracleConnectionManager>;
+type DBPool = r2d2::Pool<OracleConnectionManager>;
 
 #[tokio::main]
 async fn main() {
     let db_pool = db::create_pool().expect("database pool can be created");
 
-    db::init_db(&db_pool)
-        .await
-        .expect("database can be initialized");
+    // db::init_db(&db_pool)
+    //     .await
+    //     .expect("database can be initialized");
 
-    let pet = warp::path!("owner" / i32 / "pet");
-    let pet_param = warp::path!("owner" / i32 / "pet" / i32);
-    let owner = warp::path("owner");
+    let customer_routes = customer::get_customer_routes(db_pool.clone());
+    let subscription_routes = subscription::get_subscription_routes(db_pool.clone());
+    let contract_routes = contract::get_contract_routes(db_pool.clone());
+    let invoice_routes = invoice::get_invoice_routes(db_pool.clone());
+    let payment_routes = payment::get_payment_routes(db_pool.clone());
 
-    let pet_routes = pet
-        .and(warp::get())
-        .and(with_db(db_pool.clone()))
-        .and_then(handler::list_pets_handler)
-        .or(pet
-            .and(warp::post())
-            .and(warp::body::json())
-            .and(with_db(db_pool.clone()))
-            .and_then(handler::create_pet_handler))
-        .or(pet_param
-            .and(warp::delete())
-            .and(with_db(db_pool.clone()))
-            .and_then(handler::delete_pet_handler));
-
-    let owner_routes = owner
-        .and(warp::get())
-        .and(warp::path::param())
-        .and(with_db(db_pool.clone()))
-        .and_then(handler::fetch_owner_handler)
-        .or(owner
-            .and(warp::get())
-            .and(with_db(db_pool.clone()))
-            .and_then(handler::list_owners_handler))
-        .or(owner
-            .and(warp::post())
-            .and(warp::body::json())
-            .and(with_db(db_pool.clone()))
-            .and_then(handler::create_owner_handler));
-
-    let routes = pet_routes
-        .or(owner_routes)
+    let routes = customer_routes
+        .or(subscription_routes)
+        .or(contract_routes)
+        .or(invoice_routes)
+        .or(payment_routes)
         .recover(error::handle_rejection)
         .with(
             warp::cors()

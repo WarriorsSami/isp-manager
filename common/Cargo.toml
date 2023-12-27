@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 serde = {version = "=1.0.126", features = ["derive"] }
+chrono = { version = "0.4.31", features = ["serde"] }
