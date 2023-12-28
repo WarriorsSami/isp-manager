@@ -1,10 +1,10 @@
+use crate::{with_db, DBPool};
 use warp::Filter;
-use crate::{DBPool, with_db};
 
 pub mod handler;
-mod repository;
+pub mod repository;
 
-pub fn get_invoice_routes(
+pub fn get_routes(
     db_pool: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let invoice = warp::path!("invoice");

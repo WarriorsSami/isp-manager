@@ -22,7 +22,18 @@ CREATE OR REPLACE TRIGGER update_invoice_status
 DECLARE
     total_amount NUMBER;
     paid_amount  NUMBER;
+    invoice_status invoice.status%TYPE;
 BEGIN
+    -- check if the invoice is paid
+    SELECT STATUS
+    INTO invoice_status
+    FROM invoice
+    WHERE ID = :NEW.INVOICE_ID;
+
+    IF invoice_status = 'PAID' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'The invoice is already paid!');
+    END IF;
+
     SELECT SUM(AMOUNT)
     INTO total_amount
     FROM invoice
@@ -33,7 +44,9 @@ BEGIN
     FROM payment
     WHERE INVOICE_ID = :NEW.INVOICE_ID;
 
-    IF paid_amount + :NEW.AMOUNT >= total_amount THEN
+    IF paid_amount + :NEW.AMOUNT > total_amount THEN
+        RAISE_APPLICATION_ERROR(-20000, 'You cannot pay more than the total amount of the invoice!');
+    ELSIF paid_amount + :NEW.AMOUNT = total_amount THEN
         UPDATE invoice
         SET STATUS = 'PAID'
         WHERE ID = :NEW.INVOICE_ID;

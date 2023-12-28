@@ -51,3 +51,130 @@ pub fn create_pool() -> std::result::Result<DBPool, oracle::Error> {
         .build(manager)
         .expect("database pool can be created"))
 }
+
+pub mod customer {
+    use common::customer::Customer;
+    use oracle::Row;
+
+    pub const TABLE: &str = "customer";
+    pub const SELECT_FIELDS: &str = "id, name, fullname, address, phone, cnp";
+
+    pub fn row_to_customer(row: &Row) -> Customer {
+        let id: u32 = row.get(0).unwrap();
+        let name: String = row.get(1).unwrap();
+        let fullname: String = row.get(2).unwrap();
+        let address: String = row.get(3).unwrap();
+        let phone: String = row.get(4).unwrap();
+        let cnp: String = row.get(5).unwrap();
+
+        Customer {
+            id,
+            name,
+            fullname,
+            address,
+            phone,
+            cnp,
+        }
+    }
+}
+
+pub mod subscription {
+    use common::subscription::Subscription;
+    use oracle::Row;
+
+    pub const TABLE: &str = "subscription";
+    pub const SELECT_FIELDS: &str = "id, description, type, traffic, price, extra_traffic_price";
+
+    pub fn row_to_subscription(row: &Row) -> Subscription {
+        let id: u32 = row.get(0).unwrap();
+        let description: String = row.get(1).unwrap();
+        let subscription_type: String = row.get(2).unwrap();
+        let traffic: i32 = row.get(3).unwrap();
+        let price: f64 = row.get(4).unwrap();
+        let extra_traffic_price: f64 = row.get(5).unwrap();
+
+        Subscription {
+            id,
+            description,
+            subscription_type: subscription_type.into(),
+            traffic,
+            price,
+            extra_traffic_price,
+        }
+    }
+}
+
+pub mod contract {
+    use chrono::{DateTime, Utc};
+    use common::contract::Contract;
+    use oracle::Row;
+
+    pub const TABLE: &str = "contract";
+    pub const SELECT_FIELDS: &str = "id, customer_id, subscription_id, start_date, end_date";
+
+    pub fn row_to_contract(row: &Row) -> Contract {
+        let id: u32 = row.get(0).unwrap();
+        let customer_id: u32 = row.get(1).unwrap();
+        let subscription_id: u32 = row.get(2).unwrap();
+        let start_date: DateTime<Utc> = row.get(3).unwrap();
+        let end_date: DateTime<Utc> = row.get(4).unwrap();
+
+        Contract {
+            id,
+            customer_id,
+            subscription_id,
+            start_date,
+            end_date,
+        }
+    }
+}
+
+pub mod invoice {
+    use chrono::{DateTime, Utc};
+    use common::invoice::Invoice;
+    use oracle::Row;
+
+    pub const TABLE: &str = "invoice";
+    pub const SELECT_FIELDS: &str = "id, contract_id, issue_date, due_date, amount, status";
+
+    pub fn row_to_invoice(row: &Row) -> Invoice {
+        let id: u32 = row.get(0).unwrap();
+        let contract_id: u32 = row.get(1).unwrap();
+        let issue_date: DateTime<Utc> = row.get(2).unwrap();
+        let due_date: DateTime<Utc> = row.get(3).unwrap();
+        let amount: f64 = row.get(4).unwrap();
+        let status: String = row.get(5).unwrap();
+
+        Invoice {
+            id,
+            contract_id,
+            issue_date,
+            due_date,
+            amount,
+            status: status.into(),
+        }
+    }
+}
+
+pub mod payment {
+    use chrono::{DateTime, Utc};
+    use common::payment::Payment;
+    use oracle::Row;
+
+    pub const TABLE: &str = "payment";
+    pub const SELECT_FIELDS: &str = "id, invoice_id, payment_date, amount";
+
+    pub fn row_to_payment(row: &Row) -> Payment {
+        let id: u32 = row.get(0).unwrap();
+        let invoice_id: u32 = row.get(1).unwrap();
+        let payment_date: DateTime<Utc> = row.get(2).unwrap();
+        let amount: f64 = row.get(3).unwrap();
+
+        Payment {
+            id,
+            invoice_id,
+            payment_date,
+            amount,
+        }
+    }
+}

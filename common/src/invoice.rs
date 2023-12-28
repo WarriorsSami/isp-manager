@@ -39,8 +39,16 @@ pub struct Invoice {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct InvoiceRequest {
+pub struct CreateInvoiceRequest {
     pub contract_id: u32,
+    pub issue_date: DateTime<Utc>,
+    pub due_date: DateTime<Utc>,
+    pub amount: f64,
+    pub status: InvoiceStatus,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct UpdateInvoiceRequest {
     pub issue_date: DateTime<Utc>,
     pub due_date: DateTime<Utc>,
     pub amount: f64,

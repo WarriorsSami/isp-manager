@@ -11,9 +11,15 @@ pub struct Contract {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct ContractRequest {
+pub struct CreateContractRequest {
     pub customer_id: u32,
     pub subscription_id: u32,
+    pub start_date: DateTime<Utc>,
+    pub end_date: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct UpdateContractRequest {
     pub start_date: DateTime<Utc>,
     pub end_date: DateTime<Utc>,
 }

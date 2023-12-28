@@ -2,9 +2,9 @@ use crate::{with_db, DBPool};
 use warp::Filter;
 
 pub mod handler;
-mod repository;
+pub mod repository;
 
-pub fn get_subscription_routes(
+pub fn get_routes(
     db_pool: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let subscription = warp::path!("subscription");

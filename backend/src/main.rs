@@ -11,8 +11,8 @@ mod customer;
 mod db;
 mod error;
 mod invoice;
-mod subscription;
 mod payment;
+mod subscription;
 
 type Result<T> = std::result::Result<T, Rejection>;
 type DBCon = r2d2::PooledConnection<OracleConnectionManager>;
@@ -26,11 +26,11 @@ async fn main() {
     //     .await
     //     .expect("database can be initialized");
 
-    let customer_routes = customer::get_customer_routes(db_pool.clone());
-    let subscription_routes = subscription::get_subscription_routes(db_pool.clone());
-    let contract_routes = contract::get_contract_routes(db_pool.clone());
-    let invoice_routes = invoice::get_invoice_routes(db_pool.clone());
-    let payment_routes = payment::get_payment_routes(db_pool.clone());
+    let customer_routes = customer::get_routes(db_pool.clone());
+    let subscription_routes = subscription::get_routes(db_pool.clone());
+    let contract_routes = contract::get_routes(db_pool.clone());
+    let invoice_routes = invoice::get_routes(db_pool.clone());
+    let payment_routes = payment::get_routes(db_pool.clone());
 
     let routes = customer_routes
         .or(subscription_routes)
@@ -53,6 +53,8 @@ async fn main() {
                 .max_age(300)
                 .allow_any_origin(),
         );
+
+    println!("Listening on port :{}", 8000);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }

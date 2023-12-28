@@ -10,7 +10,7 @@ pub struct Payment {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct PaymentRequest {
+pub struct CreatePaymentRequest {
     pub invoice_id: u32,
     pub payment_date: DateTime<Utc>,
     pub amount: f64,

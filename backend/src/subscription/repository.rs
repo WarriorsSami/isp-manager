@@ -1,11 +1,9 @@
+use crate::db::subscription::{row_to_subscription, SELECT_FIELDS, TABLE};
 use crate::db::{get_db_con, Result};
 use crate::error::Error;
 use crate::DBPool;
 use common::subscription::{Subscription, SubscriptionRequest};
-use oracle::Row;
-
-const TABLE: &str = "subscription";
-const SELECT_FIELDS: &str = "id, description, type, traffic, price, extra_traffic_price";
+use oracle::sql_type::OracleType;
 
 pub async fn fetch(db_pool: &DBPool) -> Result<Vec<Subscription>> {
     let con = get_db_con(db_pool).await?;
@@ -32,34 +30,38 @@ pub async fn fetch_one(db_pool: &DBPool, id: u32) -> Result<Subscription> {
 
 pub async fn create(db_pool: &DBPool, body: SubscriptionRequest) -> Result<Subscription> {
     let con = get_db_con(db_pool).await?;
-    let query = format!("INSERT INTO {} (description, type, traffic, price, extra_traffic_price) VALUES (:description, :type, :traffic, :price, :extra_traffic_price)", TABLE);
+    let query = format!(
+        "INSERT INTO {} (description, type, traffic, price, extra_traffic_price) \
+        VALUES (:description, :type, :traffic, :price, :extra_traffic_price) RETURNING id INTO :id",
+        TABLE
+    );
 
     let subscription_type: String = body.subscription_type.into();
 
-    con.execute_named(
-        query.as_str(),
-        &[
-            ("description", &body.description),
-            ("type", &subscription_type),
-            ("traffic", &body.traffic),
-            ("price", &body.price),
-            ("extra_traffic_price", &body.extra_traffic_price),
-        ],
-    )
-    .map_err(Error::DBQuery)?;
+    let stmt = con
+        .execute_named(
+            query.as_str(),
+            &[
+                ("description", &body.description),
+                ("type", &subscription_type),
+                ("traffic", &body.traffic),
+                ("price", &body.price),
+                ("extra_traffic_price", &body.extra_traffic_price),
+                ("id", &OracleType::Number(0, 0)),
+            ],
+        )
+        .map_err(Error::DBQuery)?;
 
     if let Err(e) = con.commit() {
         con.rollback().map_err(Error::DBQuery)?;
         return Err(Error::DBQuery(e));
     }
 
-    let query = format!(
-        "SELECT {} FROM {} ORDER BY id DESC FETCH FIRST ROW ONLY",
-        SELECT_FIELDS, TABLE
-    );
+    let row_id: u32 = stmt.returned_values("id")?[0];
+    let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con
-        .query_row_named(query.as_str(), &[])
+        .query_row_named(query.as_str(), &[("id", &row_id)])
         .map_err(Error::DBQuery)?;
 
     Ok(row_to_subscription(&row))
@@ -111,22 +113,4 @@ pub async fn delete(db_pool: &DBPool, id: u32) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn row_to_subscription(row: &Row) -> Subscription {
-    let id: u32 = row.get(0).unwrap();
-    let description: String = row.get(1).unwrap();
-    let subscription_type: String = row.get(2).unwrap();
-    let traffic: i32 = row.get(3).unwrap();
-    let price: f64 = row.get(4).unwrap();
-    let extra_traffic_price: f64 = row.get(5).unwrap();
-
-    Subscription {
-        id,
-        description,
-        subscription_type: subscription_type.into(),
-        traffic,
-        price,
-        extra_traffic_price,
-    }
 }
