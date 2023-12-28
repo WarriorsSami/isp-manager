@@ -1,7 +1,7 @@
 use crate::error::application::Error;
 use crate::invoice::repository;
 use crate::{contract, DBPool, Result};
-use common::invoice::{CreateInvoiceRequest, InvoiceResponse, UpdateInvoiceRequest};
+use common::invoice::{CreateInvoiceRequest, InvoiceResponse};
 use validator::Validate;
 use warp::reply::json;
 use warp::{reject, Buf, Reply};
@@ -56,23 +56,6 @@ pub async fn create_invoice_handler(buf: impl Buf, db_pool: DBPool) -> Result<im
 
     Ok(json(&InvoiceResponse::from(
         repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
-}
-
-pub async fn update_invoice_handler(id: u32, buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Updating invoice with id {}", id);
-
-    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
-    let body: UpdateInvoiceRequest = serde_path_to_error::deserialize(deserialized)
-        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
-
-    body.validate()
-        .map_err(|e| reject::custom(Error::Validation(e)))?;
-
-    Ok(json(&InvoiceResponse::from(
-        repository::update(&db_pool, id, body)
             .await
             .map_err(reject::custom)?,
     )))

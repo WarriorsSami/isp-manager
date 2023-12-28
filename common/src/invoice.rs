@@ -49,12 +49,6 @@ pub struct CreateInvoiceRequest {
     pub amount: f64,
 }
 
-#[derive(Serialize, Deserialize, Validate, Clone, PartialEq, Debug)]
-pub struct UpdateInvoiceRequest {
-    #[validate(range(min = 0.0))]
-    pub amount: f64,
-}
-
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct InvoiceResponse {
     pub id: u32,

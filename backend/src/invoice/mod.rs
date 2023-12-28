@@ -24,11 +24,6 @@ pub fn get_routes(
             .and(with_db(db_pool.clone()))
             .and_then(handler::create_invoice_handler))
         .or(invoice_param
-            .and(warp::put())
-            .and(warp::body::aggregate())
-            .and(with_db(db_pool.clone()))
-            .and_then(handler::update_invoice_handler))
-        .or(invoice_param
             .and(warp::delete())
             .and(with_db(db_pool.clone()))
             .and_then(handler::delete_invoice_handler))

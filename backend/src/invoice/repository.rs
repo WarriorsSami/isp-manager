@@ -2,7 +2,7 @@ use crate::db::invoice::{row_to_invoice, SELECT_FIELDS, TABLE};
 use crate::db::{get_db_con, Result};
 use crate::error::application::Error;
 use crate::DBPool;
-use common::invoice::{CreateInvoiceRequest, Invoice, UpdateInvoiceRequest};
+use common::invoice::{CreateInvoiceRequest, Invoice};
 use oracle::sql_type::OracleType;
 
 pub async fn fetch(db_pool: &DBPool) -> Result<Vec<Invoice>> {
@@ -59,30 +59,6 @@ pub async fn create(db_pool: &DBPool, body: CreateInvoiceRequest) -> Result<Invo
 
     let row = con
         .query_row_named(query.as_str(), &[("id", &row_id)])
-        .map_err(Error::DBQuery)?;
-
-    Ok(row_to_invoice(&row))
-}
-
-pub async fn update(db_pool: &DBPool, id: u32, body: UpdateInvoiceRequest) -> Result<Invoice> {
-    let con = get_db_con(db_pool).await?;
-    let query = format!("UPDATE {} SET amount = :amount WHERE id = :id", TABLE);
-
-    con.execute_named(query.as_str(), &[("amount", &body.amount), ("id", &id)])
-        .map_err(|e| match e {
-            oracle::Error::NoDataFound => Error::InvoiceNotFound(id),
-            _ => Error::DBQuery(e),
-        })?;
-
-    if let Err(e) = con.commit() {
-        con.rollback().map_err(Error::DBQuery)?;
-        return Err(Error::DBQuery(e));
-    }
-
-    let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
-
-    let row = con
-        .query_row_named(query.as_str(), &[("id", &id)])
         .map_err(Error::DBQuery)?;
 
     Ok(row_to_invoice(&row))
