@@ -20,12 +20,12 @@ pub fn get_routes(
             .and_then(handler::fetch_contract_handler))
         .or(contract
             .and(warp::post())
-            .and(warp::body::json())
+            .and(warp::body::aggregate())
             .and(with_db(db_pool.clone()))
             .and_then(handler::create_contract_handler))
         .or(contract_param
             .and(warp::put())
-            .and(warp::body::json())
+            .and(warp::body::aggregate())
             .and(with_db(db_pool.clone()))
             .and_then(handler::update_contract_handler))
         .or(contract_param

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum SubscriptionType {
@@ -50,13 +51,17 @@ pub struct Subscription {
     pub extra_traffic_price: f64,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Validate, Clone, PartialEq, Debug)]
 pub struct SubscriptionRequest {
+    #[validate(length(min = 3, max = 100))]
     pub description: String,
     #[serde(rename = "type")]
     pub subscription_type: SubscriptionType,
+    #[validate(range(min = 0))]
     pub traffic: i32,
+    #[validate(range(min = 0.0))]
     pub price: f64,
+    #[validate(range(min = 0.0))]
     pub extra_traffic_price: f64,
 }
 

@@ -1,10 +1,11 @@
 use crate::customer::repository;
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::{DBPool, Result};
 use common::customer::{CustomerRequest, CustomerResponse};
 use common::invoice::InvoiceResponse;
+use validator::Validate;
 use warp::reply::json;
-use warp::{reject, Reply};
+use warp::{reject, Buf, Reply};
 
 pub async fn list_customers_handler(db_pool: DBPool) -> Result<impl Reply> {
     println!("Listing customers");
@@ -20,7 +21,7 @@ pub async fn fetch_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Rep
 
     let customer = repository::fetch_one(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::CustomerNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(json(&CustomerResponse::from(customer)))
 }
 
@@ -35,8 +36,15 @@ pub async fn list_customer_unpaid_invoices_handler(id: u32, db_pool: DBPool) -> 
     ))
 }
 
-pub async fn create_customer_handler(body: CustomerRequest, db_pool: DBPool) -> Result<impl Reply> {
+pub async fn create_customer_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
     println!("Creating a new customer");
+
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: CustomerRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
 
     Ok(json(&CustomerResponse::from(
         repository::create(&db_pool, body)
@@ -47,15 +55,22 @@ pub async fn create_customer_handler(body: CustomerRequest, db_pool: DBPool) -> 
 
 pub async fn update_customer_handler(
     id: u32,
-    body: CustomerRequest,
+    buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
     println!("Updating customer with id {}", id);
 
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: CustomerRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
+
     Ok(json(&CustomerResponse::from(
         repository::update(&db_pool, id, body)
             .await
-            .map_err(|_| reject::custom(Error::CustomerNotFound(id)))?,
+            .map_err(reject::custom)?,
     )))
 }
 
@@ -64,6 +79,6 @@ pub async fn delete_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Re
 
     repository::delete(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::CustomerNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(warp::http::StatusCode::NO_CONTENT)
 }

@@ -1,5 +1,5 @@
 use crate::config::CONFIG;
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::{DBCon, DBPool};
 use r2d2_oracle::{r2d2, OracleConnectionManager};
 use std::fs;

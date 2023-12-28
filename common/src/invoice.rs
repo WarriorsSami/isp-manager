@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum InvoiceStatus {
@@ -38,21 +39,20 @@ pub struct Invoice {
     pub status: InvoiceStatus,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Validate, Clone, PartialEq, Debug)]
+#[validate(schema(function = "crate::validation_config::validate_create_invoice_request"))]
 pub struct CreateInvoiceRequest {
     pub contract_id: u32,
     pub issue_date: DateTime<Utc>,
     pub due_date: DateTime<Utc>,
+    #[validate(range(min = 0.0))]
     pub amount: f64,
-    pub status: InvoiceStatus,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Validate, Clone, PartialEq, Debug)]
 pub struct UpdateInvoiceRequest {
-    pub issue_date: DateTime<Utc>,
-    pub due_date: DateTime<Utc>,
+    #[validate(range(min = 0.0))]
     pub amount: f64,
-    pub status: InvoiceStatus,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

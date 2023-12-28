@@ -1,6 +1,6 @@
 use crate::db::payment::{row_to_payment, SELECT_FIELDS, TABLE};
 use crate::db::{get_db_con, Result};
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::DBPool;
 use common::payment::{CreatePaymentRequest, Payment};
 use oracle::sql_type::OracleType;
@@ -53,7 +53,7 @@ pub async fn create(db_pool: &DBPool, body: CreatePaymentRequest) -> Result<Paym
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id")?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con

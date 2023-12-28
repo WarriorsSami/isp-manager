@@ -1,9 +1,10 @@
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::subscription::repository;
 use crate::{DBPool, Result};
 use common::subscription::{SubscriptionRequest, SubscriptionResponse};
+use validator::Validate;
 use warp::reply::json;
-use warp::{reject, Reply};
+use warp::{reject, Buf, Reply};
 
 pub async fn list_subscriptions_handler(db_pool: DBPool) -> Result<impl Reply> {
     println!("Listing subscriptions");
@@ -22,15 +23,19 @@ pub async fn fetch_subscription_handler(id: u32, db_pool: DBPool) -> Result<impl
 
     let subscription = repository::fetch_one(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::SubscriptionNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(json(&SubscriptionResponse::from(subscription)))
 }
 
-pub async fn create_subscription_handler(
-    body: SubscriptionRequest,
-    db_pool: DBPool,
-) -> Result<impl Reply> {
+pub async fn create_subscription_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
     println!("Creating a new subscription");
+
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: SubscriptionRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
 
     Ok(json(&SubscriptionResponse::from(
         repository::create(&db_pool, body)
@@ -41,15 +46,22 @@ pub async fn create_subscription_handler(
 
 pub async fn update_subscription_handler(
     id: u32,
-    body: SubscriptionRequest,
+    buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
     println!("Updating subscription with id {}", id);
 
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: SubscriptionRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
+
     Ok(json(&SubscriptionResponse::from(
         repository::update(&db_pool, id, body)
             .await
-            .map_err(|_| reject::custom(Error::SubscriptionNotFound(id)))?,
+            .map_err(reject::custom)?,
     )))
 }
 
@@ -58,6 +70,6 @@ pub async fn delete_subscription_handler(id: u32, db_pool: DBPool) -> Result<imp
 
     repository::delete(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::SubscriptionNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(warp::http::StatusCode::NO_CONTENT)
 }

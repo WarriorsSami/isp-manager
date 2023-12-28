@@ -21,12 +21,12 @@ pub fn get_routes(
             .and_then(handler::fetch_customer_handler))
         .or(customer
             .and(warp::post())
-            .and(warp::body::json())
+            .and(warp::body::aggregate())
             .and(with_db(db_pool.clone()))
             .and_then(handler::create_customer_handler))
         .or(customer_param
             .and(warp::put())
-            .and(warp::body::json())
+            .and(warp::body::aggregate())
             .and(with_db(db_pool.clone()))
             .and_then(handler::update_customer_handler))
         .or(customer_param

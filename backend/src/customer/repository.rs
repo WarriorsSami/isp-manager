@@ -1,7 +1,7 @@
 use crate::db::customer::{row_to_customer, SELECT_FIELDS, TABLE};
 use crate::db::invoice::row_to_invoice;
 use crate::db::{get_db_con, Result};
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::DBPool;
 use common::customer::{Customer, CustomerRequest};
 use common::invoice::Invoice;
@@ -57,7 +57,7 @@ pub async fn create(db_pool: &DBPool, body: CustomerRequest) -> Result<Customer>
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id")?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con
@@ -74,15 +74,18 @@ pub async fn update(db_pool: &DBPool, id: u32, body: CustomerRequest) -> Result<
     con.execute_named(
         query.as_str(),
         &[
-            ("id", &id),
             ("name", &body.name),
             ("fullname", &body.fullname),
             ("address", &body.address),
             ("phone", &body.phone),
             ("cnp", &body.cnp),
+            ("id", &id),
         ],
     )
-    .map_err(Error::DBQuery)?;
+    .map_err(|e| match e {
+        oracle::Error::NoDataFound => Error::CustomerNotFound(id),
+        _ => Error::DBQuery(e),
+    })?;
 
     if let Err(e) = con.commit() {
         con.rollback().map_err(Error::DBQuery)?;

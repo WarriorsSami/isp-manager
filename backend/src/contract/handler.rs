@@ -1,9 +1,10 @@
 use crate::contract::repository;
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::{customer, DBPool, Result};
 use common::contract::{ContractResponse, CreateContractRequest, UpdateContractRequest};
+use validator::Validate;
 use warp::reply::json;
-use warp::{reject, Reply};
+use warp::{reject, Buf, Reply};
 
 pub async fn list_contracts_handler(db_pool: DBPool) -> Result<impl Reply> {
     println!("Listing contracts");
@@ -19,23 +20,33 @@ pub async fn fetch_contract_handler(id: u32, db_pool: DBPool) -> Result<impl Rep
 
     let contract = repository::fetch_one(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::ContractNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(json(&ContractResponse::from(contract)))
 }
 
-pub async fn create_contract_handler(
-    body: CreateContractRequest,
-    db_pool: DBPool,
-) -> Result<impl Reply> {
+pub async fn create_contract_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
     println!("Creating a new contract");
 
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: CreateContractRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
+
     // check if customer exists
-    if let Err(_) = customer::repository::fetch_one(&db_pool, body.customer_id).await {
+    if customer::repository::fetch_one(&db_pool, body.customer_id)
+        .await
+        .is_err()
+    {
         return Err(reject::custom(Error::CustomerNotFound(body.customer_id)));
     }
 
     // check if subscription exists
-    if let Err(_) = customer::repository::fetch_one(&db_pool, body.subscription_id).await {
+    if customer::repository::fetch_one(&db_pool, body.subscription_id)
+        .await
+        .is_err()
+    {
         return Err(reject::custom(Error::SubscriptionNotFound(
             body.subscription_id,
         )));
@@ -50,15 +61,22 @@ pub async fn create_contract_handler(
 
 pub async fn update_contract_handler(
     id: u32,
-    body: UpdateContractRequest,
+    buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
     println!("Updating contract with id {}", id);
 
+    let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
+    let body: UpdateContractRequest = serde_path_to_error::deserialize(deserialized)
+        .map_err(|e| reject::custom(Error::JSONPath(e.to_string())))?;
+
+    body.validate()
+        .map_err(|e| reject::custom(Error::Validation(e)))?;
+
     Ok(json(&ContractResponse::from(
         repository::update(&db_pool, id, body)
             .await
-            .map_err(|_| reject::custom(Error::ContractNotFound(id)))?,
+            .map_err(reject::custom)?,
     )))
 }
 
@@ -67,6 +85,6 @@ pub async fn delete_contract_handler(id: u32, db_pool: DBPool) -> Result<impl Re
 
     repository::delete(&db_pool, id)
         .await
-        .map_err(|_| reject::custom(Error::ContractNotFound(id)))?;
+        .map_err(reject::custom)?;
     Ok(warp::http::StatusCode::NO_CONTENT)
 }

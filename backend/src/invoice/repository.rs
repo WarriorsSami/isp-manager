@@ -1,6 +1,6 @@
 use crate::db::invoice::{row_to_invoice, SELECT_FIELDS, TABLE};
 use crate::db::{get_db_con, Result};
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::DBPool;
 use common::invoice::{CreateInvoiceRequest, Invoice, UpdateInvoiceRequest};
 use oracle::sql_type::OracleType;
@@ -31,12 +31,10 @@ pub async fn fetch_one(db_pool: &DBPool, id: u32) -> Result<Invoice> {
 pub async fn create(db_pool: &DBPool, body: CreateInvoiceRequest) -> Result<Invoice> {
     let con = get_db_con(db_pool).await?;
     let query = format!(
-        "INSERT INTO {} (contract_id, issue_date, due_date, amount, status) \
-        VALUES (:contract_id, :issue_date, :due_date, :amount, :status) RETURNING id into :id",
+        "INSERT INTO {} (contract_id, issue_date, due_date, amount) \
+        VALUES (:contract_id, :issue_date, :due_date, :amount) RETURNING id into :id",
         TABLE
     );
-
-    let status: String = body.status.into();
 
     let stmt = con
         .execute_named(
@@ -46,7 +44,6 @@ pub async fn create(db_pool: &DBPool, body: CreateInvoiceRequest) -> Result<Invo
                 ("issue_date", &body.issue_date),
                 ("due_date", &body.due_date),
                 ("amount", &body.amount),
-                ("status", &status),
                 ("id", &OracleType::Number(0, 0)),
             ],
         )
@@ -57,7 +54,7 @@ pub async fn create(db_pool: &DBPool, body: CreateInvoiceRequest) -> Result<Invo
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id")?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con
@@ -69,21 +66,13 @@ pub async fn create(db_pool: &DBPool, body: CreateInvoiceRequest) -> Result<Invo
 
 pub async fn update(db_pool: &DBPool, id: u32, body: UpdateInvoiceRequest) -> Result<Invoice> {
     let con = get_db_con(db_pool).await?;
-    let query = format!("UPDATE {} SET issue_date = :issue_date, due_date = :due_date, amount = :amount, status = :status WHERE id = :id", TABLE);
+    let query = format!("UPDATE {} SET amount = :amount WHERE id = :id", TABLE);
 
-    let status: String = body.status.into();
-
-    con.execute_named(
-        query.as_str(),
-        &[
-            ("issue_date", &body.issue_date),
-            ("due_date", &body.due_date),
-            ("amount", &body.amount),
-            ("status", &status),
-            ("id", &id),
-        ],
-    )
-    .map_err(Error::DBQuery)?;
+    con.execute_named(query.as_str(), &[("amount", &body.amount), ("id", &id)])
+        .map_err(|e| match e {
+            oracle::Error::NoDataFound => Error::InvoiceNotFound(id),
+            _ => Error::DBQuery(e),
+        })?;
 
     if let Err(e) = con.commit() {
         con.rollback().map_err(Error::DBQuery)?;

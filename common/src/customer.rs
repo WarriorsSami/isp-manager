@@ -1,4 +1,6 @@
+use crate::validation_config::RE_CNP;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Deserialize, Clone, PartialEq, Debug)]
 pub struct Customer {
@@ -10,12 +12,17 @@ pub struct Customer {
     pub cnp: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Validate, Clone, PartialEq, Debug)]
 pub struct CustomerRequest {
+    #[validate(length(min = 3, max = 20))]
     pub name: String,
+    #[validate(length(min = 3, max = 50))]
     pub fullname: String,
+    #[validate(length(min = 3, max = 100))]
     pub address: String,
+    #[validate(phone)]
     pub phone: String,
+    #[validate(regex = "RE_CNP")]
     pub cnp: String,
 }
 

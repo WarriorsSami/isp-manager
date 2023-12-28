@@ -1,6 +1,6 @@
 use crate::db::subscription::{row_to_subscription, SELECT_FIELDS, TABLE};
 use crate::db::{get_db_con, Result};
-use crate::error::Error;
+use crate::error::application::Error;
 use crate::DBPool;
 use common::subscription::{Subscription, SubscriptionRequest};
 use oracle::sql_type::OracleType;
@@ -57,7 +57,7 @@ pub async fn create(db_pool: &DBPool, body: SubscriptionRequest) -> Result<Subsc
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id")?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con
@@ -84,7 +84,10 @@ pub async fn update(db_pool: &DBPool, id: u32, body: SubscriptionRequest) -> Res
             ("extra_traffic_price", &body.extra_traffic_price),
         ],
     )
-    .map_err(Error::DBQuery)?;
+    .map_err(|e| match e {
+        oracle::Error::NoDataFound => Error::SubscriptionNotFound(id),
+        _ => Error::DBQuery(e),
+    })?;
 
     if let Err(e) = con.commit() {
         con.rollback().map_err(Error::DBQuery)?;

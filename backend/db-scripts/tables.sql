@@ -13,6 +13,9 @@ CREATE TABLE customer
     CONSTRAINT valid_cnp CHECK (REGEXP_LIKE(cnp, '^[0-9]{13}$'))
 );
 
+ALTER TABLE customer DROP CONSTRAINT valid_phone;
+ALTER TABLE customer ADD CONSTRAINT valid_phone CHECK (REGEXP_LIKE(phone, '^\+[0-9]{11}$'));
+
 CREATE TABLE subscription
 (
     id                  NUMBER GENERATED ALWAYS AS IDENTITY (START WITH 1 INCREMENT BY 1) PRIMARY KEY,
