@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use validator::Validate;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -25,6 +26,15 @@ impl From<String> for InvoiceStatus {
             "PAID" => InvoiceStatus::Paid,
             "UNPAID" => InvoiceStatus::Unpaid,
             _ => InvoiceStatus::Unpaid,
+        }
+    }
+}
+
+impl fmt::Display for InvoiceStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InvoiceStatus::Paid => write!(f, "PAID"),
+            InvoiceStatus::Unpaid => write!(f, "UNPAID"),
         }
     }
 }

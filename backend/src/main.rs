@@ -20,6 +20,8 @@ type DBPool = r2d2::Pool<OracleConnectionManager>;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let db_pool = db::create_pool().expect("database pool can be created");
 
     // db::init_db(&db_pool)
@@ -54,7 +56,7 @@ async fn main() {
                 .allow_any_origin(),
         );
 
-    println!("Listening on port :{}", 8000);
+    log::info!("Listening on port :{}", 8000);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }

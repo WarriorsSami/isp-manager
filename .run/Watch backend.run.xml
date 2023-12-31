@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Watch backend" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="watch -w ./src  -s &quot;cargo run --package backend --bin backend&quot;" />
+    <option name="workingDirectory" value="file://$PROJECT_DIR$/backend" />
+    <option name="emulateTerminal" value="true" />
+    <option name="channel" value="DEFAULT" />
+    <option name="requiredFeatures" value="true" />
+    <option name="allFeatures" value="false" />
+    <option name="withSudo" value="false" />
+    <option name="buildTarget" value="REMOTE" />
+    <option name="backtrace" value="SHORT" />
+    <envs>
+      <env name="CONFIG_DB_DSN" value="localhost:1521/ORCLCDB" />
+      <env name="CONFIG_DB_PASS" value="Oracle_123" />
+      <env name="CONFIG_DB_USER" value="SYSTEM" />
+      <env name="RUST_LOG" value="backend" />
+    </envs>
+    <option name="isRedirectInput" value="false" />
+    <option name="redirectInputPath" value="" />
+    <method v="2">
+      <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+    </method>
+  </configuration>
+</component>

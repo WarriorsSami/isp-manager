@@ -1,6 +1,7 @@
 use crate::customer::repository;
 use crate::error::application::Error;
 use crate::{DBPool, Result};
+use common::contract::ContractResponse;
 use common::customer::{CustomerRequest, CustomerResponse};
 use common::invoice::InvoiceResponse;
 use validator::Validate;
@@ -8,7 +9,7 @@ use warp::reply::json;
 use warp::{reject, Buf, Reply};
 
 pub async fn list_customers_handler(db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing customers");
+    log::info!("Listing customers");
 
     let customers = repository::fetch(&db_pool).await.map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
@@ -17,7 +18,7 @@ pub async fn list_customers_handler(db_pool: DBPool) -> Result<impl Reply> {
 }
 
 pub async fn fetch_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Fetching customer with id {}", id);
+    log::info!("Fetching customer with id {}", id);
 
     let customer = repository::fetch_one(&db_pool, id)
         .await
@@ -26,7 +27,7 @@ pub async fn fetch_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Rep
 }
 
 pub async fn list_customer_unpaid_invoices_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing unpaid invoices for customer with id {}", id);
+    log::info!("Listing unpaid invoices for customer with id {}", id);
 
     let invoices = repository::fetch_unpaid_invoices(&db_pool, id)
         .await
@@ -36,8 +37,19 @@ pub async fn list_customer_unpaid_invoices_handler(id: u32, db_pool: DBPool) -> 
     ))
 }
 
+pub async fn list_customer_contracts_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
+    log::info!("Listing contracts for customer with id {}", id);
+
+    let contracts = repository::fetch_contracts(&db_pool, id)
+        .await
+        .map_err(reject::custom)?;
+    Ok(json::<Vec<_>>(
+        &contracts.into_iter().map(ContractResponse::from).collect(),
+    ))
+}
+
 pub async fn create_customer_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Creating a new customer");
+    log::info!("Creating a new customer");
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: CustomerRequest = serde_path_to_error::deserialize(deserialized)
@@ -58,7 +70,7 @@ pub async fn update_customer_handler(
     buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
-    println!("Updating customer with id {}", id);
+    log::info!("Updating customer with id {}", id);
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: CustomerRequest = serde_path_to_error::deserialize(deserialized)
@@ -75,7 +87,7 @@ pub async fn update_customer_handler(
 }
 
 pub async fn delete_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Deleting customer with id {}", id);
+    log::info!("Deleting customer with id {}", id);
 
     repository::delete(&db_pool, id)
         .await

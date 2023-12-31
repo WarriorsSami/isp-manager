@@ -7,8 +7,8 @@ pub mod repository;
 pub fn get_routes(
     db_pool: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let payment = warp::path!("payment");
-    let payment_param = warp::path!("payment" / u32);
+    let payment = warp::path!("api" / "payment");
+    let payment_param = warp::path!("api" / "payment" / u32);
 
     payment
         .and(warp::get())

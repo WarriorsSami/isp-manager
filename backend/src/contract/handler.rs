@@ -2,12 +2,13 @@ use crate::contract::repository;
 use crate::error::application::Error;
 use crate::{customer, DBPool, Result};
 use common::contract::{ContractResponse, CreateContractRequest, UpdateContractRequest};
+use common::invoice::InvoiceResponse;
 use validator::Validate;
 use warp::reply::json;
 use warp::{reject, Buf, Reply};
 
 pub async fn list_contracts_handler(db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing contracts");
+    log::info!("Listing contracts");
 
     let contracts = repository::fetch(&db_pool).await.map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
@@ -16,7 +17,7 @@ pub async fn list_contracts_handler(db_pool: DBPool) -> Result<impl Reply> {
 }
 
 pub async fn fetch_contract_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Fetching contract with id {}", id);
+    log::info!("Fetching contract with id {}", id);
 
     let contract = repository::fetch_one(&db_pool, id)
         .await
@@ -24,8 +25,19 @@ pub async fn fetch_contract_handler(id: u32, db_pool: DBPool) -> Result<impl Rep
     Ok(json(&ContractResponse::from(contract)))
 }
 
+pub async fn fetch_invoices(id: u32, db_pool: DBPool) -> Result<impl Reply> {
+    log::info!("Fetching invoices for contract with id {}", id);
+
+    let invoices = repository::fetch_invoices(&db_pool, id)
+        .await
+        .map_err(reject::custom)?;
+    Ok(json::<Vec<_>>(
+        &invoices.into_iter().map(InvoiceResponse::from).collect(),
+    ))
+}
+
 pub async fn create_contract_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Creating a new contract");
+    log::info!("Creating a new contract");
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: CreateContractRequest = serde_path_to_error::deserialize(deserialized)
@@ -64,7 +76,7 @@ pub async fn update_contract_handler(
     buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
-    println!("Updating contract with id {}", id);
+    log::info!("Updating contract with id {}", id);
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: UpdateContractRequest = serde_path_to_error::deserialize(deserialized)
@@ -81,7 +93,7 @@ pub async fn update_contract_handler(
 }
 
 pub async fn delete_contract_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Deleting contract with id {}", id);
+    log::info!("Deleting contract with id {}", id);
 
     repository::delete(&db_pool, id)
         .await

@@ -2,12 +2,13 @@ use crate::error::application::Error;
 use crate::invoice::repository;
 use crate::{contract, DBPool, Result};
 use common::invoice::{CreateInvoiceRequest, InvoiceResponse};
+use common::payment::PaymentResponse;
 use validator::Validate;
 use warp::reply::json;
 use warp::{reject, Buf, Reply};
 
 pub async fn list_invoices_handler(db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing invoices");
+    log::info!("Listing invoices");
 
     let invoices = repository::fetch(&db_pool).await.map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
@@ -16,7 +17,7 @@ pub async fn list_invoices_handler(db_pool: DBPool) -> Result<impl Reply> {
 }
 
 pub async fn fetch_invoice_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Fetching invoice with id {}", id);
+    log::info!("Fetching invoice with id {}", id);
 
     let invoice = repository::fetch_one(&db_pool, id)
         .await
@@ -24,8 +25,19 @@ pub async fn fetch_invoice_handler(id: u32, db_pool: DBPool) -> Result<impl Repl
     Ok(json(&InvoiceResponse::from(invoice)))
 }
 
+pub async fn fetch_payments(id: u32, db_pool: DBPool) -> Result<impl Reply> {
+    log::info!("Fetching payments for invoice with id {}", id);
+
+    let payments = repository::fetch_payments(&db_pool, id)
+        .await
+        .map_err(reject::custom)?;
+    Ok(json::<Vec<_>>(
+        &payments.into_iter().map(PaymentResponse::from).collect(),
+    ))
+}
+
 pub async fn create_invoice_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Creating a new invoice");
+    log::info!("Creating a new invoice");
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: CreateInvoiceRequest = serde_path_to_error::deserialize(deserialized)
@@ -62,7 +74,7 @@ pub async fn create_invoice_handler(buf: impl Buf, db_pool: DBPool) -> Result<im
 }
 
 pub async fn delete_invoice_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Deleting invoice with id {}", id);
+    log::info!("Deleting invoice with id {}", id);
 
     repository::delete(&db_pool, id)
         .await

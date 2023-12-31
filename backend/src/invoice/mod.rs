@@ -7,8 +7,9 @@ pub mod repository;
 pub fn get_routes(
     db_pool: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let invoice = warp::path!("invoice");
-    let invoice_param = warp::path!("invoice" / u32);
+    let invoice = warp::path!("api" / "invoice");
+    let invoice_param = warp::path!("api" / "invoice" / u32);
+    let invoice_payments = warp::path!("api" / "invoice" / u32 / "payment");
 
     invoice
         .and(warp::get())
@@ -27,4 +28,8 @@ pub fn get_routes(
             .and(warp::delete())
             .and(with_db(db_pool.clone()))
             .and_then(handler::delete_invoice_handler))
+        .or(invoice_payments
+            .and(warp::get())
+            .and(with_db(db_pool.clone()))
+            .and_then(handler::fetch_payments))
 }

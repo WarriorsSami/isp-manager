@@ -7,7 +7,7 @@ use warp::reply::json;
 use warp::{reject, Buf, Reply};
 
 pub async fn list_payments_handler(db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing payments");
+    log::info!("Listing payments");
 
     let payments = repository::fetch(&db_pool).await.map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
@@ -16,7 +16,7 @@ pub async fn list_payments_handler(db_pool: DBPool) -> Result<impl Reply> {
 }
 
 pub async fn fetch_payment_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Fetching payment with id {}", id);
+    log::info!("Fetching payment with id {}", id);
 
     let payment = repository::fetch_one(&db_pool, id)
         .await
@@ -25,7 +25,7 @@ pub async fn fetch_payment_handler(id: u32, db_pool: DBPool) -> Result<impl Repl
 }
 
 pub async fn create_payment_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Creating a new payment");
+    log::info!("Creating a new payment");
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: CreatePaymentRequest = serde_path_to_error::deserialize(deserialized)

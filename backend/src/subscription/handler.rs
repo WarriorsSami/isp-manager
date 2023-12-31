@@ -7,7 +7,7 @@ use warp::reply::json;
 use warp::{reject, Buf, Reply};
 
 pub async fn list_subscriptions_handler(db_pool: DBPool) -> Result<impl Reply> {
-    println!("Listing subscriptions");
+    log::info!("Listing subscriptions");
 
     let subscriptions = repository::fetch(&db_pool).await.map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
@@ -19,7 +19,7 @@ pub async fn list_subscriptions_handler(db_pool: DBPool) -> Result<impl Reply> {
 }
 
 pub async fn fetch_subscription_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Fetching subscription with id {}", id);
+    log::info!("Fetching subscription with id {}", id);
 
     let subscription = repository::fetch_one(&db_pool, id)
         .await
@@ -28,7 +28,7 @@ pub async fn fetch_subscription_handler(id: u32, db_pool: DBPool) -> Result<impl
 }
 
 pub async fn create_subscription_handler(buf: impl Buf, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Creating a new subscription");
+    log::info!("Creating a new subscription");
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: SubscriptionRequest = serde_path_to_error::deserialize(deserialized)
@@ -49,7 +49,7 @@ pub async fn update_subscription_handler(
     buf: impl Buf,
     db_pool: DBPool,
 ) -> Result<impl Reply> {
-    println!("Updating subscription with id {}", id);
+    log::info!("Updating subscription with id {}", id);
 
     let deserialized = &mut serde_json::Deserializer::from_reader(buf.reader());
     let body: SubscriptionRequest = serde_path_to_error::deserialize(deserialized)
@@ -66,7 +66,7 @@ pub async fn update_subscription_handler(
 }
 
 pub async fn delete_subscription_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
-    println!("Deleting subscription with id {}", id);
+    log::info!("Deleting subscription with id {}", id);
 
     repository::delete(&db_pool, id)
         .await

@@ -2,7 +2,7 @@
 name = "backend"
 version = "0.1.0"
 authors = ["Sami Barbut-Dica"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 tokio = { version = "1.6.1", features = ["macros", "rt-multi-thread"] }
@@ -17,7 +17,9 @@ lazy_static = "1.4.0"
 envy = "0.4.2"
 validator = { version = "0.16.1", features = ["derive"] }
 chrono = { version = "0.4.31", features = ["serde"] }
+env_logger = "0.10.1"
 common = { version = "0.1.0", path = "../common" }
+log = "0.4.20"
 
 [profile.dev]
 debug = 0

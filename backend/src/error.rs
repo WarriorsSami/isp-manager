@@ -63,7 +63,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
     let (code, message, errors) = if err.is_not_found() {
         (StatusCode::NOT_FOUND, "Not Found".to_string(), None)
     } else if let Some(body_err) = err.find::<warp::filters::body::BodyDeserializeError>() {
-        eprintln!("invalid body: {}", body_err);
+        log::warn!("invalid body: {}", body_err);
 
         (
             StatusCode::BAD_REQUEST,
@@ -76,7 +76,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
     } else if let Some(e) = err.find::<application::Error>() {
         match e {
             application::Error::JSONPath(e) => {
-                eprintln!("error parsing JSON: {}", e);
+                log::warn!("error parsing JSON: {}", e);
                 (StatusCode::BAD_REQUEST, e.to_string(), None)
             }
             application::Error::Validation(val_errs) => {
@@ -114,7 +114,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::DBQuery(e) => {
-                eprintln!("error executing query: {:?}", e);
+                log::error!("error executing query: {:?}", e);
 
                 match e {
                     oracle::Error::NoDataFound => {
@@ -145,7 +145,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 }
             }
             application::Error::CustomerNotFound(id) => {
-                eprintln!("customer not found: {}", id);
+                log::warn!("customer not found: {}", id);
                 (
                     StatusCode::NOT_FOUND,
                     format!("Customer {} not found", id),
@@ -153,7 +153,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::ContractNotFound(id) => {
-                eprintln!("contract not found: {}", id);
+                log::warn!("contract not found: {}", id);
                 (
                     StatusCode::NOT_FOUND,
                     format!("Contract {} not found", id),
@@ -161,7 +161,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::InvoiceNotFound(id) => {
-                eprintln!("invoice not found: {}", id);
+                log::warn!("invoice not found: {}", id);
                 (
                     StatusCode::NOT_FOUND,
                     format!("Invoice {} not found", id),
@@ -169,7 +169,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::PaymentNotFound(id) => {
-                eprintln!("payment not found: {}", id);
+                log::warn!("payment not found: {}", id);
                 (
                     StatusCode::NOT_FOUND,
                     format!("Payment {} not found", id),
@@ -177,7 +177,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::SubscriptionNotFound(id) => {
-                eprintln!("subscription not found: {}", id);
+                log::warn!("subscription not found: {}", id);
                 (
                     StatusCode::NOT_FOUND,
                     format!("Subscription {} not found", id),
@@ -189,7 +189,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 issue_date,
                 due_date,
             ) => {
-                eprintln!(
+                log::warn!(
                     "invoice (issue_date: {}, due_date: {}) not in contract (id: {}) availability period",
                     issue_date, due_date, id
                 );
@@ -203,9 +203,10 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             application::Error::PaymentBeforeInvoiceIssueDate(payment_date, invoice_id) => {
-                eprintln!(
+                log::warn!(
                     "payment date ({}) must be later than invoice (id: {}) issue date",
-                    payment_date, invoice_id
+                    payment_date,
+                    invoice_id
                 );
                 (
                     StatusCode::BAD_REQUEST,
@@ -217,7 +218,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
                 )
             }
             _ => {
-                eprintln!("unhandled application error: {:?}", err);
+                log::error!("unhandled application error: {:?}", err);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Internal Server Error".to_string(),
@@ -232,7 +233,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
             None,
         )
     } else {
-        eprintln!("unhandled error: {:?}", err);
+        log::error!("unhandled error: {:?}", err);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Internal Server Error".to_string(),

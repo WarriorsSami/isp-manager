@@ -7,8 +7,8 @@ pub mod repository;
 pub fn get_routes(
     db_pool: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let subscription = warp::path!("subscription");
-    let subscription_param = warp::path!("subscription" / u32);
+    let subscription = warp::path!("api" / "subscription");
+    let subscription_param = warp::path!("api" / "subscription" / u32);
 
     subscription
         .and(warp::get())

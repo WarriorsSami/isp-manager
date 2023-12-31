@@ -7,3 +7,5 @@ members = [
     #Internal
     "common"
 ]
+
+resolver = "2"

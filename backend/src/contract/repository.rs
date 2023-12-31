@@ -1,8 +1,10 @@
 use crate::db::contract::{row_to_contract, SELECT_FIELDS, TABLE};
+use crate::db::invoice::row_to_invoice;
 use crate::db::{get_db_con, Result};
 use crate::error::application::Error;
 use crate::DBPool;
 use common::contract::{Contract, CreateContractRequest, UpdateContractRequest};
+use common::invoice::Invoice;
 use oracle::sql_type::OracleType;
 
 pub async fn fetch(db_pool: &DBPool) -> Result<Vec<Contract>> {
@@ -111,4 +113,20 @@ pub async fn delete(db_pool: &DBPool, id: u32) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub async fn fetch_invoices(db_pool: &DBPool, id: u32) -> Result<Vec<Invoice>> {
+    use crate::db::invoice::SELECT_FIELDS;
+
+    let con = get_db_con(db_pool).await?;
+    let query = format!("SELECT {} FROM GET_INVOICES(:id)", SELECT_FIELDS);
+
+    let rows = con
+        .query_named(query.as_str(), &[("id", &id)])
+        .map_err(Error::DBQuery)?;
+
+    Ok(rows
+        .filter(|r| r.is_ok())
+        .map(|r| row_to_invoice(&r.unwrap()))
+        .collect())
 }

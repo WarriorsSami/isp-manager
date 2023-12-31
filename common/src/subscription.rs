@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use validator::Validate;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -36,6 +37,18 @@ impl From<SubscriptionType> for String {
             SubscriptionType::Tv => "TV".to_string(),
             SubscriptionType::MobileInternet => "MOBILE_INTERNET".to_string(),
             SubscriptionType::FixedInternet => "FIXED_INTERNET".to_string(),
+        }
+    }
+}
+
+impl fmt::Display for SubscriptionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SubscriptionType::Mobile => write!(f, "MOBILE"),
+            SubscriptionType::Fixed => write!(f, "FIXED"),
+            SubscriptionType::Tv => write!(f, "TV"),
+            SubscriptionType::MobileInternet => write!(f, "MOBILE INTERNET"),
+            SubscriptionType::FixedInternet => write!(f, "FIXED INTERNET"),
         }
     }
 }
