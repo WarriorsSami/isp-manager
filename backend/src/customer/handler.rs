@@ -58,11 +58,16 @@ pub async fn create_customer_handler(buf: impl Buf, db_pool: DBPool) -> Result<i
     body.validate()
         .map_err(|e| reject::custom(Error::Validation(e)))?;
 
-    Ok(json(&CustomerResponse::from(
-        repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
+    let created_customer = repository::create(&db_pool, body)
+        .await
+        .map_err(reject::custom)?;
+
+    let response = json(&CustomerResponse::from(created_customer));
+
+    Ok(warp::reply::with_status(
+        response,
+        warp::http::StatusCode::CREATED,
+    ))
 }
 
 pub async fn update_customer_handler(

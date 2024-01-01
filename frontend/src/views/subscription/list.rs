@@ -1,24 +1,41 @@
+use crate::app::{AppLink, Route};
 use common::subscription::SubscriptionResponse;
 use gloo_net::http::Request;
-use material_yew::{MatCircularProgress, MatIconButton, MatList, MatListItem};
-use yew::{html, Component, Context, Html};
+use material_yew::{MatButton, MatCircularProgress, MatIconButton};
+use yew::{html, AttrValue, Component, Context, Html};
 
 pub struct List {
     subscriptions: Option<Vec<SubscriptionResponse>>,
 }
 
 pub enum Msg {
-    MakeReq,
-    Resp(Result<Vec<SubscriptionResponse>, anyhow::Error>),
+    GetAllRequest,
+    GetAllResponse(Result<Vec<SubscriptionResponse>, anyhow::Error>),
+    DeleteRequest(u32),
+    DeleteResponse(Result<(), anyhow::Error>),
 }
 
 impl List {
-    fn render_list(&self) -> Html {
+    fn render_table(&self, ctx: &Context<List>) -> Html {
         if let Some(subs) = &self.subscriptions {
             html! {
-                <MatList multi=true>
-                    {  subs.iter().map(|sub| self.render_subscription(sub)).collect::<Html>() }
-                </MatList>
+                <table class="tftable" border="1">
+                    <thead>
+                        <tr>
+                            <th>{ "ID" }</th>
+                            <th>{ "Description" }</th>
+                            <th>{ "Type" }</th>
+                            <th>{ "Traffic" }</th>
+                            <th>{ "Price" }</th>
+                            <th>{ "Extra Traffic Price" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        { subs.iter().map(|sub| self.render_item(ctx, sub)).collect::<Html>() }
+                    </tbody>
+                </table>
             }
         } else {
             html! {
@@ -29,13 +46,29 @@ impl List {
         }
     }
 
-    fn render_subscription(&self, sub: &SubscriptionResponse) -> Html {
+    fn render_item(&self, ctx: &Context<List>, sub: &SubscriptionResponse) -> Html {
+        let sub_id = sub.id;
+
         html! {
-            <MatListItem>
-                { format!("{}. {} {} {} Gb/s {}$ {}$", &sub.id, &sub.description, &sub.subscription_type, &sub.traffic, &sub.price, &sub.extra_traffic_price) }
-                <MatIconButton icon="edit" />
-                <MatIconButton icon="delete" />
-            </MatListItem>
+            <tr>
+                <td>{ &sub.id }</td>
+                <td>{ &sub.description }</td>
+                <td>{ &sub.subscription_type }</td>
+                <td>{ format!("{} Gb/s", &sub.traffic) }</td>
+                <td>{ format!("{}$", &sub.price) }</td>
+                <td>{ format!("{}$", &sub.extra_traffic_price) }</td>
+                <td>
+                    <AppLink to={Route::SubscriptionEdit { id: sub.id }}>
+                        <button class="btn-warning">
+                            <MatIconButton icon="edit" />
+                        </button>
+                    </AppLink>
+
+                    <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteRequest(sub_id))}>
+                        <MatIconButton icon="delete" />
+                    </button>
+                </td>
+            </tr>
         }
     }
 }
@@ -44,19 +77,20 @@ impl Component for List {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        _ctx.link().send_message(Msg::MakeReq);
+    fn create(ctx: &Context<Self>) -> Self {
+        ctx.link().send_message(Msg::GetAllRequest);
         Self {
             subscriptions: None,
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        let link = ctx.link().clone();
+
         match msg {
-            Msg::MakeReq => {
+            Msg::GetAllRequest => {
                 log::info!("Requesting subscriptions");
 
-                let link = ctx.link().clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     let get_subscriptions_req =
                         Request::get("http://localhost:8000/api/subscription")
@@ -70,11 +104,11 @@ impl Component for List {
                             match subscriptions {
                                 Ok(subscriptions) => {
                                     log::info!("Subscriptions: {:?}", subscriptions);
-                                    link.send_message(Msg::Resp(Ok(subscriptions)));
+                                    link.send_message(Msg::GetAllResponse(Ok(subscriptions)));
                                 }
                                 Err(err) => {
                                     log::error!("Failed to parse response: {:?}", err);
-                                    link.send_message(Msg::Resp(Err(anyhow::anyhow!(
+                                    link.send_message(Msg::GetAllResponse(Err(anyhow::anyhow!(
                                         "Failed to parse response: {:?}",
                                         err
                                     ))));
@@ -83,7 +117,7 @@ impl Component for List {
                         }
                         Err(err) => {
                             log::error!("Failed to send request: {:?}", err);
-                            link.send_message(Msg::Resp(Err(anyhow::anyhow!(
+                            link.send_message(Msg::GetAllResponse(Err(anyhow::anyhow!(
                                 "Failed to send request: {:?}",
                                 err
                             ))));
@@ -92,19 +126,63 @@ impl Component for List {
                 });
                 false
             }
-            Msg::Resp(Ok(subscriptions)) => {
+            Msg::GetAllResponse(Ok(subscriptions)) => {
                 self.subscriptions = Some(subscriptions);
                 true
             }
-            Msg::Resp(Err(_)) => false,
+            Msg::GetAllResponse(Err(_)) => false,
+            Msg::DeleteRequest(id) => {
+                log::info!("Deleting subscription with id: {}", id);
+
+                let link = ctx.link().clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let delete_subscription_req = Request::delete(
+                        format!("http://localhost:8000/api/subscription/{}", id).as_str(),
+                    )
+                    .header("Content-Type", "application/json");
+
+                    let resp = delete_subscription_req.send().await;
+
+                    match resp {
+                        Ok(resp) => {
+                            if resp.status() == 204 {
+                                link.send_message(Msg::DeleteResponse(Ok(())));
+                            } else {
+                                link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                    "Failed to delete subscription: {:?}",
+                                    resp
+                                ))));
+                            }
+                        }
+                        Err(err) => {
+                            log::error!("Failed to send request: {:?}", err);
+                            link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                "Failed to send request: {:?}",
+                                err
+                            ))));
+                        }
+                    }
+                });
+                false
+            }
+            Msg::DeleteResponse(Ok(_)) => {
+                ctx.link().send_message(Msg::GetAllRequest);
+                false
+            }
+            Msg::DeleteResponse(Err(_)) => false,
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-            <div>
-                <h2>{ "Subscriptions" }</h2>
-                { self.render_list() }
+            <div class="box">
+                <h2> { "Subscriptions" } </h2>
+                <h3>
+                    <AppLink to={Route::SubscriptionCreate}>
+                        <MatButton label="Create new subscription" icon={AttrValue::from("add")} raised=true/>
+                    </AppLink>
+                </h3>
+                { self.render_table(ctx) }
             </div>
         }
     }

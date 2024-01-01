@@ -307,3 +307,48 @@ mwc-list-item, mwc-check-list-item, mwc-radio-list-item {
     width: 50%;
   }
 }
+
+.box {
+  padding: 1em;
+}
+
+.btn-danger {
+    color: #f44336;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.btn-info {
+    color: #2196f3;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.btn-warning {
+    color: #ffc107;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.btn-success {
+    color: #4caf50;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.tftable {font-size:14px;color:#333333;width:100%;border-width: 1px;border-color: #87ceeb;border-collapse: collapse;}
+.tftable th {font-size:18px;background-color:#87ceeb;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;text-align:left;}
+.tftable tr {background-color:#ffffff;}
+.tftable td {font-size:14px;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;}
+.tftable tr:hover {background-color:#e0ffff;}
+
+.form-input {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    padding-bottom: 1em;
+}

@@ -37,11 +37,16 @@ pub async fn create_subscription_handler(buf: impl Buf, db_pool: DBPool) -> Resu
     body.validate()
         .map_err(|e| reject::custom(Error::Validation(e)))?;
 
-    Ok(json(&SubscriptionResponse::from(
-        repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
+    let created_subscription = repository::create(&db_pool, body)
+        .await
+        .map_err(reject::custom)?;
+
+    let response = json(&SubscriptionResponse::from(created_subscription));
+
+    Ok(warp::reply::with_status(
+        response,
+        warp::http::StatusCode::CREATED,
+    ))
 }
 
 pub async fn update_subscription_handler(

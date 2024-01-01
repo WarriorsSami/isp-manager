@@ -26,7 +26,7 @@ pub enum Route {
     NotFound,
 }
 
-type AppLink = Link<Route>;
+pub type AppLink = Link<Route>;
 
 pub struct App {
     /// `true` represents open; `false` represents close

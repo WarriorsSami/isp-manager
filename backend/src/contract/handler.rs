@@ -64,11 +64,16 @@ pub async fn create_contract_handler(buf: impl Buf, db_pool: DBPool) -> Result<i
         )));
     }
 
-    Ok(json(&ContractResponse::from(
-        repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
+    let created_contract = repository::create(&db_pool, body)
+        .await
+        .map_err(reject::custom)?;
+
+    let response = json(&ContractResponse::from(created_contract));
+
+    Ok(warp::reply::with_status(
+        response,
+        warp::http::StatusCode::CREATED,
+    ))
 }
 
 pub async fn update_contract_handler(

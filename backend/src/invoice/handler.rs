@@ -66,11 +66,16 @@ pub async fn create_invoice_handler(buf: impl Buf, db_pool: DBPool) -> Result<im
         ));
     }
 
-    Ok(json(&InvoiceResponse::from(
-        repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
+    let created_invoice = repository::create(&db_pool, body)
+        .await
+        .map_err(reject::custom)?;
+
+    let response = json(&InvoiceResponse::from(created_invoice));
+
+    Ok(warp::reply::with_status(
+        response,
+        warp::http::StatusCode::CREATED,
+    ))
 }
 
 pub async fn delete_invoice_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {

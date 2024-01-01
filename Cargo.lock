@@ -348,6 +348,7 @@ dependencies = [
  "material-yew",
  "serde",
  "serde_json",
+ "validator",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-logger",

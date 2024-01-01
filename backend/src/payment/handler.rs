@@ -51,9 +51,14 @@ pub async fn create_payment_handler(buf: impl Buf, db_pool: DBPool) -> Result<im
         )));
     }
 
-    Ok(json(&PaymentResponse::from(
-        repository::create(&db_pool, body)
-            .await
-            .map_err(reject::custom)?,
-    )))
+    let created_payment = repository::create(&db_pool, body)
+        .await
+        .map_err(reject::custom)?;
+
+    let response = json(&PaymentResponse::from(created_payment));
+
+    Ok(warp::reply::with_status(
+        response,
+        warp::http::StatusCode::CREATED,
+    ))
 }
