@@ -5,7 +5,8 @@ use material_yew::list::{GraphicType, SelectedDetail};
 use material_yew::select::ListIndex::Single;
 use material_yew::text_inputs::{TextAreaCharCounter, TextFieldType};
 use material_yew::{
-    MatButton, MatIconButton, MatListItem, MatSelect, MatSnackbar, MatTextArea, MatTextField,
+    MatButton, MatCircularProgress, MatIconButton, MatListItem, MatSelect, MatSnackbar,
+    MatTextArea, MatTextField,
 };
 use validator::Validate;
 use wasm_bindgen::JsValue;
@@ -24,6 +25,7 @@ pub struct Edit {
     state_price: f64,
     state_extra_traffic_price: f64,
     state_error: Option<String>,
+    state_loading: bool,
 }
 
 pub enum Msg {
@@ -38,6 +40,7 @@ pub enum Msg {
     EditExtraTrafficPrice(f64),
     ShowErrorSnackbar(anyhow::Error),
     HideErrorSnackbar,
+    ToggleLoading,
 }
 
 impl Edit {
@@ -126,9 +129,21 @@ impl Edit {
                         })} />
                 </div>
 
-                <button class="btn-success" type="submit">
-                    <MatButton label="Edit" raised=true />
-                </button>
+                <div class="loading-box">
+                    <button class="btn-success" type="submit">
+                        <MatButton label="Edit" raised=true />
+                    </button>
+
+                    {
+                        if self.state_loading {
+                            html! {
+                                <MatCircularProgress indeterminate=true />
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                </div>
             </form>
         }
     }
@@ -142,12 +157,13 @@ impl Component for Edit {
         ctx.link().send_message(Msg::GetRequest);
 
         Self {
-            state_description: "".to_string(),
+            state_description: String::new(),
             state_subscription_type: SubscriptionType::Mobile,
             state_traffic: 0,
             state_price: 0.0,
             state_extra_traffic_price: 0.0,
             state_error: None,
+            state_loading: false,
         }
     }
 
@@ -168,8 +184,11 @@ impl Component for Edit {
                     match resp {
                         Ok(resp) => {
                             if resp.status() == 200 {
-                                let subscription: SubscriptionResponse = resp.json().await.unwrap();
-                                link.send_message(Msg::GetResponse(Ok(subscription)));
+                                let subscription = resp.json().await.map_err(|err| {
+                                    anyhow::anyhow!("Failed to parse response: {:?}", err)
+                                });
+
+                                link.send_message(Msg::GetResponse(subscription));
                             } else {
                                 link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                     "Failed to get subscription: {:?}",
@@ -203,6 +222,8 @@ impl Component for Edit {
                 false
             }
             Msg::EditRequest => {
+                link.send_message(Msg::ToggleLoading);
+
                 let state = SubscriptionRequest {
                     description: self.state_description.clone(),
                     subscription_type: self.state_subscription_type.clone(),
@@ -229,11 +250,12 @@ impl Component for Edit {
                     let subscription_json =
                         JsValue::from(serde_json::to_string(&subscription).unwrap());
 
-                    let create_subscription_req =
-                        Request::put(format!("http://localhost:8000/api/subscription/{}", props.id).as_str())
-                            .header("Content-Type", "application/json")
-                            .body(subscription_json)
-                            .expect("Failed to build request.");
+                    let create_subscription_req = Request::put(
+                        format!("http://localhost:8000/api/subscription/{}", props.id).as_str(),
+                    )
+                    .header("Content-Type", "application/json")
+                    .body(subscription_json)
+                    .expect("Failed to build request.");
 
                     let resp = create_subscription_req.send().await;
 
@@ -261,6 +283,7 @@ impl Component for Edit {
             }
             Msg::EditResponse(Ok(())) => {
                 log::info!("Subscription created");
+                link.send_message(Msg::ToggleLoading);
                 link.navigator().unwrap().push(&Route::SubscriptionList);
                 false
             }
@@ -296,6 +319,10 @@ impl Component for Edit {
             }
             Msg::HideErrorSnackbar => {
                 self.state_error = None;
+                true
+            }
+            Msg::ToggleLoading => {
+                self.state_loading = !self.state_loading;
                 true
             }
         }

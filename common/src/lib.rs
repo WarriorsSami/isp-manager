@@ -17,13 +17,13 @@ pub(crate) mod validation_config {
     pub fn validate_create_contract_request(
         contract: &crate::contract::CreateContractRequest,
     ) -> Result<(), ValidationError> {
-        if contract.start_date < Utc::now() {
+        if contract.start_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "Start date should be later than or equal to today",
             ));
         }
 
-        if contract.end_date < Utc::now() {
+        if contract.end_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "End date should be later than or equal to today",
             ));
@@ -41,13 +41,13 @@ pub(crate) mod validation_config {
     pub fn validate_update_contract_request(
         contract: &crate::contract::UpdateContractRequest,
     ) -> Result<(), ValidationError> {
-        if contract.start_date < Utc::now() {
+        if contract.start_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "Start date should be later than or equal to today",
             ));
         }
 
-        if contract.end_date < Utc::now() {
+        if contract.end_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "End date should be later than or equal to today",
             ));
@@ -65,13 +65,13 @@ pub(crate) mod validation_config {
     pub fn validate_create_invoice_request(
         invoice: &crate::invoice::CreateInvoiceRequest,
     ) -> Result<(), ValidationError> {
-        if invoice.issue_date < Utc::now() {
+        if invoice.issue_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "Issue date should be later than or equal to today",
             ));
         }
 
-        if invoice.due_date < Utc::now() {
+        if invoice.due_date < Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "Due date should be later than or equal to today",
             ));
@@ -89,7 +89,7 @@ pub(crate) mod validation_config {
     pub fn validate_payment_date(
         payment_date: &chrono::DateTime<Utc>,
     ) -> Result<(), ValidationError> {
-        if payment_date < &Utc::now() {
+        if payment_date < &Utc::now().date().and_hms(0, 0, 0) {
             return Err(ValidationError::new(
                 "Payment date should be later than or equal to today",
             ));

@@ -6,10 +6,7 @@ use material_yew::{
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::views::home::Home;
-use crate::views::subscription::create::Create;
-use crate::views::subscription::edit::Edit;
-use crate::views::subscription::list::List;
+use crate::views::{contract, customer, home, subscription};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -21,6 +18,22 @@ pub enum Route {
     SubscriptionCreate,
     #[at("/app/subscription/:id/edit")]
     SubscriptionEdit { id: u32 },
+    #[at("/app/subscription/:id/detail")]
+    SubscriptionDetail { id: u32 },
+    #[at("/app/customer/list")]
+    CustomerList,
+    #[at("/app/customer/create")]
+    CustomerCreate,
+    #[at("/app/customer/:id/edit")]
+    CustomerEdit { id: u32 },
+    #[at("/app/customer/:id/detail")]
+    CustomerDetail { id: u32 },
+    #[at("/app/contract/create")]
+    ContractCreate,
+    #[at("/app/contract/:id/edit")]
+    ContractEdit { id: u32 },
+    #[at("/app/contract/:id/detail")]
+    ContractDetail { id: u32 },
     #[not_found]
     #[at("/404")]
     NotFound,
@@ -79,6 +92,7 @@ impl Component for App {
                         <MatList>
                             <AppLink to={Route::Home}><MatListItem>{"Home"}</MatListItem></AppLink>
                             <AppLink to={Route::SubscriptionList}><MatListItem>{"Subscriptions"}</MatListItem></AppLink>
+                            <AppLink to={Route::CustomerList}><MatListItem>{"Customers"}</MatListItem></AppLink>
                         </MatList>
                     </div>
                     <MatDrawerAppContent>
@@ -110,11 +124,19 @@ impl Component for App {
 impl App {
     fn switch(switch: Route) -> Html {
         match switch {
-            Route::Home => html! { <Home /> },
-            Route::SubscriptionList => html! { <List /> },
-            Route::SubscriptionCreate => html! { <Create /> },
-            Route::SubscriptionEdit { id } => html! { <Edit id={id} /> },
-            Route::NotFound => html! { <h1>{"404"}</h1> },
+            Route::Home => html! { <home::Home /> },
+            Route::SubscriptionList => html! { <subscription::list::List /> },
+            Route::SubscriptionCreate => html! { <subscription::create::Create /> },
+            Route::SubscriptionEdit { id } => html! { <subscription::edit::Edit id={id} /> },
+            Route::SubscriptionDetail { id } => html! { <subscription::detail::Detail id={id} /> },
+            Route::CustomerList => html! { <customer::list::List /> },
+            Route::CustomerCreate => html! { <customer::create::Create /> },
+            Route::CustomerEdit { id } => html! { <customer::edit::Edit id={id} /> },
+            Route::CustomerDetail { id } => html! { <customer::detail::Detail id={id} /> },
+            Route::ContractCreate => html! { <contract::create::Create /> },
+            Route::ContractEdit { id } => html! { <contract::edit::Edit id={id} /> },
+            Route::ContractDetail { id } => html! { <contract::detail::Detail id={id} /> },
+            Route::NotFound => html! { <div class="center"><h1>{"404 Not Found"}</h1></div> },
         }
     }
 }

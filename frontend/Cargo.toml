@@ -21,4 +21,5 @@ anyhow = "1"
 yew-router = "0.17.0"
 log = "0.4.20"
 validator = { version = "0.16.1", features = ["derive"] }
+chrono = { version = "0.4.31", features = ["serde"] }
 common = { version = "0.1.0", path = "../common" }

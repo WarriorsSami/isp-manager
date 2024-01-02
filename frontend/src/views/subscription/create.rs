@@ -5,7 +5,8 @@ use material_yew::list::{GraphicType, SelectedDetail};
 use material_yew::select::ListIndex::Single;
 use material_yew::text_inputs::{TextAreaCharCounter, TextFieldType};
 use material_yew::{
-    MatButton, MatIconButton, MatListItem, MatSelect, MatSnackbar, MatTextArea, MatTextField,
+    MatButton, MatCircularProgress, MatIconButton, MatListItem, MatSelect, MatSnackbar,
+    MatTextArea, MatTextField,
 };
 use validator::Validate;
 use wasm_bindgen::JsValue;
@@ -19,6 +20,7 @@ pub struct Create {
     state_price: f64,
     state_extra_traffic_price: f64,
     state_error: Option<String>,
+    state_loading: bool,
 }
 
 pub enum Msg {
@@ -31,6 +33,7 @@ pub enum Msg {
     EditExtraTrafficPrice(f64),
     ShowErrorSnackbar(anyhow::Error),
     HideErrorSnackbar,
+    ToggleLoading,
 }
 
 impl Create {
@@ -46,6 +49,7 @@ impl Create {
                     <MatTextArea
                         outlined=true
                         label="Description"
+                        required=true
                         value={self.state_description.clone()}
                         max_length=100
                         char_counter={TextAreaCharCounter::Internal}
@@ -54,6 +58,7 @@ impl Create {
                     <MatSelect
                         label="Type"
                         outlined=true
+                        required=true
                         icon="shop"
                         onselected={ctx.link().callback(|e: SelectedDetail| {
                             let Single(Some(value)) = e.index else { return Msg::EditSubscriptionType(SubscriptionType::Mobile); };
@@ -82,6 +87,7 @@ impl Create {
                         field_type={TextFieldType::Number}
                         min="0"
                         outlined=true
+                        required=true
                         oninput={ctx.link().callback(|value: String| {
                             let value = value.parse::<i32>().unwrap_or(0);
                             Msg::EditTraffic(value)
@@ -94,6 +100,7 @@ impl Create {
                         field_type={TextFieldType::Number}
                         min="0"
                         outlined=true
+                        required=true
                         oninput={ctx.link().callback(|value: String| {
                             let value = value.parse::<f64>().unwrap_or(0.0);
                             Msg::EditPrice(value)
@@ -106,15 +113,28 @@ impl Create {
                         field_type={TextFieldType::Number}
                         min="0"
                         outlined=true
+                        required=true
                         oninput={ctx.link().callback(|value: String| {
                             let value = value.parse::<f64>().unwrap_or(0.0);
                             Msg::EditExtraTrafficPrice(value)
                         })} />
                 </div>
 
-                <button class="btn-success" type="submit">
-                    <MatButton label="Create" raised=true />
-                </button>
+                <div class="loading-box">
+                    <button class="btn-success" type="submit">
+                        <MatButton label="Create" raised=true />
+                    </button>
+
+                    {
+                        if self.state_loading {
+                            html! {
+                                <MatCircularProgress indeterminate=true />
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                </div>
             </form>
         }
     }
@@ -126,12 +146,13 @@ impl Component for Create {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            state_description: "".to_string(),
+            state_description: String::new(),
             state_subscription_type: SubscriptionType::Mobile,
             state_traffic: 0,
             state_price: 0.0,
             state_extra_traffic_price: 0.0,
             state_error: None,
+            state_loading: false,
         }
     }
 
@@ -140,6 +161,8 @@ impl Component for Create {
 
         match msg {
             Msg::CreateRequest => {
+                link.send_message(Msg::ToggleLoading);
+
                 let state = SubscriptionRequest {
                     description: self.state_description.clone(),
                     subscription_type: self.state_subscription_type.clone(),
@@ -151,7 +174,6 @@ impl Component for Create {
                 let validation_result = state.validate();
 
                 if validation_result.is_err() {
-                    log::error!("Validation failed: {:?}", validation_result);
                     link.send_message(Msg::CreateResponse(Err(anyhow::anyhow!(
                         "Validation failed: {:?}",
                         validation_result
@@ -186,7 +208,6 @@ impl Component for Create {
                             }
                         }
                         Err(err) => {
-                            log::error!("Failed to send request: {:?}", err);
                             link.send_message(Msg::CreateResponse(Err(anyhow::anyhow!(
                                 "Failed to send request: {:?}",
                                 err
@@ -198,6 +219,7 @@ impl Component for Create {
             }
             Msg::CreateResponse(Ok(())) => {
                 log::info!("Subscription created");
+                link.send_message(Msg::ToggleLoading);
                 link.navigator().unwrap().push(&Route::SubscriptionList);
                 false
             }
@@ -232,6 +254,10 @@ impl Component for Create {
             }
             Msg::HideErrorSnackbar => {
                 self.state_error = None;
+                true
+            }
+            Msg::ToggleLoading => {
+                self.state_loading = !self.state_loading;
                 true
             }
         }

@@ -51,7 +51,11 @@ impl List {
 
         html! {
             <tr>
-                <td>{ &sub.id }</td>
+                <td>
+                    <AppLink to={Route::SubscriptionDetail { id: sub.id }}>
+                        { &sub.id }
+                    </AppLink>
+                </td>
                 <td>{ &sub.description }</td>
                 <td>{ &sub.subscription_type }</td>
                 <td>{ format!("{} Gb/s", &sub.traffic) }</td>
@@ -100,19 +104,20 @@ impl Component for List {
 
                     match resp {
                         Ok(resp) => {
-                            let subscriptions = resp.json::<Vec<SubscriptionResponse>>().await;
-                            match subscriptions {
-                                Ok(subscriptions) => {
-                                    log::info!("Subscriptions: {:?}", subscriptions);
-                                    link.send_message(Msg::GetAllResponse(Ok(subscriptions)));
-                                }
-                                Err(err) => {
-                                    log::error!("Failed to parse response: {:?}", err);
-                                    link.send_message(Msg::GetAllResponse(Err(anyhow::anyhow!(
-                                        "Failed to parse response: {:?}",
-                                        err
-                                    ))));
-                                }
+                            if resp.status() == 200 {
+                                let subscriptions = resp
+                                    .json::<Vec<SubscriptionResponse>>()
+                                    .await
+                                    .map_err(|err| {
+                                        anyhow::anyhow!("Failed to parse response: {:?}", err)
+                                    });
+
+                                link.send_message(Msg::GetAllResponse(subscriptions));
+                            } else {
+                                link.send_message(Msg::GetAllResponse(Err(anyhow::anyhow!(
+                                    "Failed to get subscriptions: {:?}",
+                                    resp
+                                ))));
                             }
                         }
                         Err(err) => {
@@ -134,7 +139,6 @@ impl Component for List {
             Msg::DeleteRequest(id) => {
                 log::info!("Deleting subscription with id: {}", id);
 
-                let link = ctx.link().clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     let delete_subscription_req = Request::delete(
                         format!("http://localhost:8000/api/subscription/{}", id).as_str(),
@@ -155,7 +159,6 @@ impl Component for List {
                             }
                         }
                         Err(err) => {
-                            log::error!("Failed to send request: {:?}", err);
                             link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
                                 "Failed to send request: {:?}",
                                 err
@@ -166,10 +169,13 @@ impl Component for List {
                 false
             }
             Msg::DeleteResponse(Ok(_)) => {
-                ctx.link().send_message(Msg::GetAllRequest);
+                link.send_message(Msg::GetAllRequest);
                 false
             }
-            Msg::DeleteResponse(Err(_)) => false,
+            Msg::DeleteResponse(Err(err)) => {
+                log::error!("Failed to delete subscription: {:?}", err);
+                false
+            }
         }
     }
 
@@ -179,7 +185,7 @@ impl Component for List {
                 <h2> { "Subscriptions" } </h2>
                 <h3>
                     <AppLink to={Route::SubscriptionCreate}>
-                        <MatButton label="Create new subscription" icon={AttrValue::from("add")} raised=true/>
+                        <MatButton label="Create new subscription" icon={AttrValue::from("add")} raised=true />
                     </AppLink>
                 </h3>
                 { self.render_table(ctx) }

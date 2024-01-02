@@ -1,6 +1,6 @@
 use crate::contract::repository;
 use crate::error::application::Error;
-use crate::{customer, DBPool, Result};
+use crate::{customer, subscription, DBPool, Result};
 use common::contract::{ContractResponse, CreateContractRequest, UpdateContractRequest};
 use common::invoice::InvoiceResponse;
 use validator::Validate;
@@ -55,7 +55,7 @@ pub async fn create_contract_handler(buf: impl Buf, db_pool: DBPool) -> Result<i
     }
 
     // check if subscription exists
-    if customer::repository::fetch_one(&db_pool, body.subscription_id)
+    if subscription::repository::fetch_one(&db_pool, body.subscription_id)
         .await
         .is_err()
     {
