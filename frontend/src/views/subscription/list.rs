@@ -51,17 +51,19 @@ impl List {
 
         html! {
             <tr>
-                <td>
-                    <AppLink to={Route::SubscriptionDetail { id: sub.id }}>
-                        { &sub.id }
-                    </AppLink>
-                </td>
+                <td>{ &sub.id }</td>
                 <td>{ &sub.description }</td>
                 <td>{ &sub.subscription_type }</td>
                 <td>{ format!("{} Gb/s", &sub.traffic) }</td>
                 <td>{ format!("{}$", &sub.price) }</td>
                 <td>{ format!("{}$", &sub.extra_traffic_price) }</td>
                 <td>
+                    <AppLink to={Route::SubscriptionDetail { id: sub.id }}>
+                        <button class="btn-info">
+                            <MatIconButton icon="info" />
+                        </button>
+                    </AppLink>
+
                     <AppLink to={Route::SubscriptionEdit { id: sub.id }}>
                         <button class="btn-warning">
                             <MatIconButton icon="edit" />

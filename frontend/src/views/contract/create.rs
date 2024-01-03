@@ -134,7 +134,7 @@ impl Create {
                     />
                 </div>
 
-                <div class="loading-box">
+                <div class="row-flex">
                     <button class="btn-success" type="submit">
                         <MatButton label="Create" raised=true />
                     </button>
@@ -378,7 +378,7 @@ impl Component for Create {
 
         html! {
             <div class="box">
-                <h2>{ "Create subscription" }</h2>
+                <h2>{ "Create contract" }</h2>
                 { self.render_form(ctx) }
 
                 <MatSnackbar

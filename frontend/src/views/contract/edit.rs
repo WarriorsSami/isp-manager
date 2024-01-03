@@ -1,16 +1,13 @@
 use chrono::{DateTime, NaiveDate, Utc};
+use common::contract::{ContractResponse, UpdateContractRequest};
 use gloo_net::http::Request;
 use material_yew::text_inputs::TextFieldType;
-use material_yew::{
-    MatButton, MatCircularProgress, MatIconButton, MatSnackbar,
-    MatTextField,
-};
+use material_yew::{MatButton, MatCircularProgress, MatIconButton, MatSnackbar, MatTextField};
 use validator::Validate;
 use wasm_bindgen::JsValue;
 use web_sys::SubmitEvent;
 use yew::{html, Component, Context, Html, Properties};
 use yew_router::scope_ext::RouterScopeExt;
-use common::contract::{ContractResponse, UpdateContractRequest};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct EditProps {
@@ -73,7 +70,7 @@ impl Edit {
                     />
                 </div>
 
-                <div class="loading-box">
+                <div class="row-flex">
                     <button class="btn-success" type="submit">
                         <MatButton label="Edit" raised=true />
                     </button>
@@ -120,7 +117,7 @@ impl Component for Edit {
                     let get_contract_req = Request::get(
                         format!("http://localhost:8000/api/contract/{}", props.id).as_str(),
                     )
-                        .header("Content-Type", "application/json");
+                    .header("Content-Type", "application/json");
 
                     let resp = get_contract_req.send().await;
 
@@ -185,10 +182,12 @@ impl Component for Edit {
                 wasm_bindgen_futures::spawn_local(async move {
                     let contract_json = JsValue::from(serde_json::to_string(&contract).unwrap());
 
-                    let create_contract_req = Request::put(format!("http://localhost:8000/api/contract/{}", props.id).as_str())
-                        .header("Content-Type", "application/json")
-                        .body(contract_json)
-                        .expect("Failed to build request.");
+                    let create_contract_req = Request::put(
+                        format!("http://localhost:8000/api/contract/{}", props.id).as_str(),
+                    )
+                    .header("Content-Type", "application/json")
+                    .body(contract_json)
+                    .expect("Failed to build request.");
 
                     let resp = create_contract_req.send().await;
 
@@ -255,7 +254,7 @@ impl Component for Edit {
 
         html! {
             <div class="box">
-                <h2>{ "Edit subscription" }</h2>
+                <h2>{ "Edit contract" }</h2>
                 { self.render_form(ctx) }
 
                 <MatSnackbar
@@ -271,4 +270,3 @@ impl Component for Edit {
         }
     }
 }
-

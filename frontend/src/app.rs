@@ -6,7 +6,7 @@ use material_yew::{
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::views::{contract, customer, home, subscription};
+use crate::views::{contract, customer, home, invoice, payment, subscription};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -34,6 +34,12 @@ pub enum Route {
     ContractEdit { id: u32 },
     #[at("/app/contract/:id/detail")]
     ContractDetail { id: u32 },
+    #[at("/app/invoice/create")]
+    InvoiceCreate,
+    #[at("/app/invoice/:id/detail")]
+    InvoiceDetail { id: u32 },
+    #[at("/app/payment/create")]
+    PaymentCreate,
     #[not_found]
     #[at("/404")]
     NotFound,
@@ -136,6 +142,9 @@ impl App {
             Route::ContractCreate => html! { <contract::create::Create /> },
             Route::ContractEdit { id } => html! { <contract::edit::Edit id={id} /> },
             Route::ContractDetail { id } => html! { <contract::detail::Detail id={id} /> },
+            Route::InvoiceCreate => html! { <invoice::create::Create /> },
+            Route::InvoiceDetail { id } => html! { <invoice::detail::Detail id={id} /> },
+            Route::PaymentCreate => html! { <payment::create::Create /> },
             Route::NotFound => html! { <div class="center"><h1>{"404 Not Found"}</h1></div> },
         }
     }

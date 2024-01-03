@@ -1,9 +1,7 @@
-use crate::app::{AppLink, Route};
 use common::subscription::SubscriptionResponse;
 use gloo_net::http::Request;
-use material_yew::{MatCircularProgress, MatIconButton};
+use material_yew::MatCircularProgress;
 use yew::{html, Component, Context, Html, Properties};
-use yew_router::scope_ext::RouterScopeExt;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct DetailProps {
@@ -17,12 +15,10 @@ pub struct Detail {
 pub enum Msg {
     GetRequest,
     GetResponse(Result<SubscriptionResponse, anyhow::Error>),
-    DeleteRequest,
-    DeleteResponse(Result<(), anyhow::Error>),
 }
 
 impl Detail {
-    fn render_subscription(&self, ctx: &Context<Detail>) -> Html {
+    fn render_subscription(&self, _ctx: &Context<Detail>) -> Html {
         if let Some(subscription) = &self.subscription {
             html! {
                 <table class="tftable" border="1">
@@ -34,7 +30,6 @@ impl Detail {
                             <th>{ "Traffic" }</th>
                             <th>{ "Price" }</th>
                             <th>{ "Extra Traffic Price" }</th>
-                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
 
@@ -46,17 +41,6 @@ impl Detail {
                             <td>{ format!("{} Gb/s", &subscription.traffic) }</td>
                             <td>{ format!("{}$", &subscription.price) }</td>
                             <td>{ format!("{}$", &subscription.extra_traffic_price) }</td>
-                            <td>
-                                <AppLink to={Route::SubscriptionEdit { id: subscription.id }}>
-                                    <button class="btn-warning">
-                                        <MatIconButton icon="edit" />
-                                    </button>
-                                </AppLink>
-
-                                <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteRequest)}>
-                                    <MatIconButton icon="delete" />
-                                </button>
-                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -129,46 +113,6 @@ impl Component for Detail {
             }
             Msg::GetResponse(Err(err)) => {
                 log::error!("Error: {:?}", err);
-                false
-            }
-            Msg::DeleteRequest => {
-                log::info!("Deleting subscription with id: {}", props.id);
-
-                wasm_bindgen_futures::spawn_local(async move {
-                    let delete_subscription_req = Request::delete(
-                        format!("http://localhost:8000/api/subscription/{}", props.id).as_str(),
-                    )
-                    .header("Content-Type", "application/json");
-
-                    let resp = delete_subscription_req.send().await;
-
-                    match resp {
-                        Ok(resp) => {
-                            if resp.status() == 204 {
-                                link.send_message(Msg::DeleteResponse(Ok(())));
-                            } else {
-                                link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
-                                    "Failed to delete subscription: {:?}",
-                                    resp
-                                ))));
-                            }
-                        }
-                        Err(err) => {
-                            link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
-                                "Failed to send request: {:?}",
-                                err
-                            ))));
-                        }
-                    }
-                });
-                false
-            }
-            Msg::DeleteResponse(Ok(_)) => {
-                link.navigator().unwrap().push(&Route::SubscriptionList);
-                false
-            }
-            Msg::DeleteResponse(Err(err)) => {
-                log::error!("Failed to delete subscription: {:?}", err);
                 false
             }
         }

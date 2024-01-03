@@ -91,7 +91,7 @@ impl Create {
                     />
                 </div>
 
-                <div class="loading-box">
+                <div class="row-flex">
                     <button class="btn-success" type="submit">
                         <MatButton label="Create" raised=true />
                     </button>

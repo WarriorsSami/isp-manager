@@ -4,8 +4,7 @@ use common::customer::CustomerResponse;
 use common::invoice::InvoiceResponse;
 use gloo_net::http::Request;
 use material_yew::{MatButton, MatCircularProgress, MatIconButton};
-use yew::{html, AttrValue, Callback, Component, Context, Html, Properties};
-use yew_router::scope_ext::RouterScopeExt;
+use yew::{html, AttrValue, Component, Context, Html, Properties};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct DetailProps {
@@ -166,11 +165,11 @@ impl Detail {
                  <td>{ invoice.due_date.format("%Y-%m-%d").to_string() }</td>
                  <td>{ &invoice.amount }</td>
                  <td>
-                     // <AppLink>
+                     <AppLink to={Route::InvoiceDetail { id: invoice.id }}>
                          <button class="btn-info">
                              <MatIconButton icon="info" />
                          </button>
-                     // </AppLink>
+                     </AppLink>
                  </td>
             </tr>
         }
@@ -383,9 +382,6 @@ impl Component for Detail {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let link = ctx.link().clone();
-        let props = ctx.props().clone();
-
         html! {
             <div class="box">
                 <h2>{ "Customer details" }</h2>

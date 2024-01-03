@@ -2,8 +2,8 @@ use crate::app::{AppLink, Route};
 use common::contract::ContractResponse;
 use common::invoice::InvoiceResponse;
 use gloo_net::http::Request;
-use material_yew::{MatCircularProgress, MatIconButton};
-use yew::{html, Component, Context, Html, Properties};
+use material_yew::{MatButton, MatCircularProgress, MatIconButton};
+use yew::{html, AttrValue, Component, Context, Html, Properties};
 
 #[derive(Debug, Properties, Clone, PartialEq)]
 pub struct DetailProps {
@@ -97,6 +97,8 @@ impl Detail {
     }
 
     fn render_invoice(&self, ctx: &Context<Detail>, invoice: &InvoiceResponse) -> Html {
+        let invoice_id = invoice.id;
+
         html! {
             <tr>
                  <td>{ &invoice.id }</td>
@@ -105,11 +107,15 @@ impl Detail {
                  <td>{ &invoice.amount }</td>
                  <td>{ &invoice.status }</td>
                  <td>
-                     // <AppLink>
+                     <AppLink to={Route::InvoiceDetail { id: invoice.id }}>
                          <button class="btn-info">
                              <MatIconButton icon="info" />
                          </button>
-                     // </AppLink>
+                     </AppLink>
+
+                     <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteInvoiceRequest(invoice_id))}>
+                         <MatIconButton icon="delete" />
+                     </button>
                  </td>
             </tr>
         }
@@ -274,6 +280,11 @@ impl Component for Detail {
                 { self.render_contract(ctx) }
 
                 <h2>{ "Invoices" }</h2>
+                <h3>
+                    <AppLink to={Route::InvoiceCreate}>
+                        <MatButton label="Create new invoice" icon={AttrValue::from("add")} raised=true />
+                    </AppLink>
+                </h3>
                 { self.render_invoices(ctx) }
             </div>
         }

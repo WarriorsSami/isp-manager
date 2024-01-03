@@ -98,7 +98,7 @@ impl Edit {
                     />
                 </div>
 
-                <div class="loading-box">
+                <div class="row-flex">
                     <button class="btn-success" type="submit">
                         <MatButton label="Edit" raised=true />
                     </button>

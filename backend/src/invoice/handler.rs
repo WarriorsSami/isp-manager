@@ -57,6 +57,15 @@ pub async fn create_invoice_handler(buf: impl Buf, db_pool: DBPool) -> Result<im
     let contract = contract.unwrap();
 
     if body.issue_date < contract.start_date || body.due_date > contract.end_date {
+        log::debug!(
+            "Invoice (issue_date: {}, due_date: {}) not in contract (id: {}, start_date: {}, end_date: {}) availability period",
+            body.issue_date,
+            body.due_date,
+            contract.id,
+            contract.start_date,
+            contract.end_date
+        );
+
         return Err(reject::custom(
             Error::InvoiceNotInContractAvailabilityPeriod(
                 contract.id,
