@@ -4,6 +4,7 @@ use common::invoice::InvoiceResponse;
 use gloo_net::http::Request;
 use material_yew::{MatButton, MatCircularProgress, MatIconButton};
 use yew::{html, AttrValue, Component, Context, Html, Properties};
+use yew_router::scope_ext::RouterScopeExt;
 
 #[derive(Debug, Properties, Clone, PartialEq)]
 pub struct DetailProps {
@@ -16,17 +17,21 @@ pub struct Detail {
 }
 
 pub enum Msg {
-    GetContractRequest,
-    GetContractResponse(Result<ContractResponse, anyhow::Error>),
+    GetRequest,
+    GetResponse(Result<ContractResponse, anyhow::Error>),
     GetInvoicesRequest,
     GetInvoicesResponse(Result<Vec<InvoiceResponse>, anyhow::Error>),
     DeleteInvoiceRequest(u32),
     DeleteInvoiceResponse(Result<(), anyhow::Error>),
+    DeleteRequest(u32),
+    DeleteResponse(Result<(), anyhow::Error>),
 }
 
 impl Detail {
     fn render_contract(&self, ctx: &Context<Detail>) -> Html {
         if let Some(contract) = &self.contract {
+            let contract_id = contract.id;
+
             html! {
                 <table class="tftable" border="1">
                     <thead>
@@ -36,6 +41,7 @@ impl Detail {
                             <th>{ "Subscription ID" }</th>
                             <th>{ "Start Date" }</th>
                             <th>{ "End Date" }</th>
+                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
 
@@ -54,6 +60,17 @@ impl Detail {
                             </td>
                             <td>{ contract.start_date.format("%Y-%m-%d").to_string() }</td>
                             <td>{ &contract.end_date.format("%Y-%m-%d").to_string() }</td>
+                            <td>
+                                <AppLink to={Route::ContractEdit { id: contract.id }}>
+                                    <button class="btn-warning">
+                                        <MatIconButton icon="edit" />
+                                    </button>
+                                </AppLink>
+
+                                <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteRequest(contract_id))}>
+                                    <MatIconButton icon="delete" />
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -127,7 +144,7 @@ impl Component for Detail {
     type Properties = DetailProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        ctx.link().send_message(Msg::GetContractRequest);
+        ctx.link().send_message(Msg::GetRequest);
         ctx.link().send_message(Msg::GetInvoicesRequest);
 
         Self {
@@ -141,7 +158,7 @@ impl Component for Detail {
         let props = ctx.props().clone();
 
         match msg {
-            Msg::GetContractRequest => {
+            Msg::GetRequest => {
                 log::info!("Fetching contract with id {}", props.id);
 
                 wasm_bindgen_futures::spawn_local(async move {
@@ -160,16 +177,16 @@ impl Component for Detail {
                                         anyhow::anyhow!("Failed to parse response: {}", err)
                                     });
 
-                                link.send_message(Msg::GetContractResponse(contract));
+                                link.send_message(Msg::GetResponse(contract));
                             } else {
-                                link.send_message(Msg::GetContractResponse(Err(anyhow::anyhow!(
+                                link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                     "Failed to get contract: {:?}",
                                     resp
                                 ))));
                             }
                         }
                         Err(err) => {
-                            link.send_message(Msg::GetContractResponse(Err(anyhow::anyhow!(
+                            link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                 "Failed to send request: {}",
                                 err
                             ))));
@@ -178,11 +195,11 @@ impl Component for Detail {
                 });
                 false
             }
-            Msg::GetContractResponse(Ok(contract)) => {
+            Msg::GetResponse(Ok(contract)) => {
                 self.contract = Some(contract);
                 true
             }
-            Msg::GetContractResponse(Err(err)) => {
+            Msg::GetResponse(Err(err)) => {
                 log::error!("Failed retrieving contract data: {:?}", err);
                 false
             }
@@ -268,6 +285,48 @@ impl Component for Detail {
             }
             Msg::DeleteInvoiceResponse(Err(err)) => {
                 log::error!("Failed to delete invoice: {:?}", err);
+                false
+            }
+            Msg::DeleteRequest(id) => {
+                log::info!("Deleting contract {}", id);
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    let delete_contract_req = Request::delete(
+                        format!("http://localhost:8000/api/contract/{}", id).as_str(),
+                    )
+                    .header("Content-Type", "application/json");
+
+                    let resp = delete_contract_req.send().await;
+
+                    match resp {
+                        Ok(resp) => {
+                            if resp.status() == 204 {
+                                link.send_message(Msg::DeleteResponse(Ok(())));
+                            } else {
+                                link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                    "Failed to delete contract: {:?}",
+                                    resp
+                                ))));
+                            }
+                        }
+                        Err(err) => {
+                            link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                "Failed to send request: {}",
+                                err
+                            ))));
+                        }
+                    }
+                });
+                false
+            }
+            Msg::DeleteResponse(Ok(_)) => {
+                link.navigator().unwrap().push(&Route::CustomerDetail {
+                    id: self.contract.as_ref().unwrap().customer_id,
+                });
+                false
+            }
+            Msg::DeleteResponse(Err(err)) => {
+                log::error!("Failed deleting contract: {:?}", err);
                 false
             }
         }

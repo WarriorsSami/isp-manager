@@ -5,6 +5,7 @@ use common::invoice::InvoiceResponse;
 use gloo_net::http::Request;
 use material_yew::{MatButton, MatCircularProgress, MatIconButton};
 use yew::{html, AttrValue, Component, Context, Html, Properties};
+use yew_router::scope_ext::RouterScopeExt;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct DetailProps {
@@ -18,19 +19,23 @@ pub struct Detail {
 }
 
 pub enum Msg {
-    GetCustomerRequest,
-    GetCustomerResponse(Result<CustomerResponse, anyhow::Error>),
+    GetRequest,
+    GetResponse(Result<CustomerResponse, anyhow::Error>),
     GetContractsRequest,
     GetContractsResponse(Result<Vec<ContractResponse>, anyhow::Error>),
     DeleteContractRequest(u32),
     DeleteContractResponse(Result<(), anyhow::Error>),
     GetUnpaidInvoicesRequest,
     GetUnpaidInvoicesResponse(Result<Vec<InvoiceResponse>, anyhow::Error>),
+    DeleteRequest(u32),
+    DeleteResponse(Result<(), anyhow::Error>),
 }
 
 impl Detail {
-    fn render_customer(&self, _ctx: &Context<Detail>) -> Html {
+    fn render_customer(&self, ctx: &Context<Detail>) -> Html {
         if let Some(customer) = &self.customer {
+            let customer_id = customer.id;
+
             html! {
                 <table class="tftable" border="1">
                     <thead>
@@ -41,6 +46,7 @@ impl Detail {
                             <th>{ "Address" }</th>
                             <th>{ "Phone" }</th>
                             <th>{ "CNP" }</th>
+                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
 
@@ -52,6 +58,17 @@ impl Detail {
                             <td>{ &customer.address }</td>
                             <td>{ &customer.phone }</td>
                             <td>{ &customer.cnp }</td>
+                            <td>
+                                <AppLink to={Route::CustomerEdit { id: customer.id }}>
+                                    <button class="btn-warning">
+                                        <MatIconButton icon="edit" />
+                                    </button>
+                                </AppLink>
+
+                                <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteRequest(customer_id))}>
+                                    <MatIconButton icon="delete" />
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -181,7 +198,7 @@ impl Component for Detail {
     type Properties = DetailProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        ctx.link().send_message(Msg::GetCustomerRequest);
+        ctx.link().send_message(Msg::GetRequest);
         ctx.link().send_message(Msg::GetContractsRequest);
         ctx.link().send_message(Msg::GetUnpaidInvoicesRequest);
 
@@ -197,7 +214,7 @@ impl Component for Detail {
         let props = ctx.props().clone();
 
         match msg {
-            Msg::GetCustomerRequest => {
+            Msg::GetRequest => {
                 log::info!("Requesting customer {}", props.id);
 
                 wasm_bindgen_futures::spawn_local(async move {
@@ -216,16 +233,16 @@ impl Component for Detail {
                                         anyhow::anyhow!("Failed parsing response: {}", err)
                                     });
 
-                                link.send_message(Msg::GetCustomerResponse(customer));
+                                link.send_message(Msg::GetResponse(customer));
                             } else {
-                                link.send_message(Msg::GetCustomerResponse(Err(anyhow::anyhow!(
+                                link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                     "Failed retrieving customer data: {:?}",
                                     resp
                                 ))));
                             }
                         }
                         Err(err) => {
-                            link.send_message(Msg::GetCustomerResponse(Err(anyhow::anyhow!(
+                            link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                 "Failed to send request: {}",
                                 err
                             ))));
@@ -234,11 +251,11 @@ impl Component for Detail {
                 });
                 false
             }
-            Msg::GetCustomerResponse(Ok(customer)) => {
+            Msg::GetResponse(Ok(customer)) => {
                 self.customer = Some(customer);
                 true
             }
-            Msg::GetCustomerResponse(Err(err)) => {
+            Msg::GetResponse(Err(err)) => {
                 log::error!("Failed retrieving customer data: {:?}", err);
                 self.customer = None;
                 true
@@ -377,6 +394,47 @@ impl Component for Detail {
                 log::error!("Failed retrieving unpaid invoices data: {:?}", err);
                 self.unpaid_invoices = None;
                 true
+            }
+            Msg::DeleteRequest(id) => {
+                log::info!("Deleting customer with id {}", id);
+
+                let link = ctx.link().clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let delete_customer_req = Request::delete(
+                        format!("http://localhost:8000/api/customer/{}", id).as_str(),
+                    )
+                    .header("Content-Type", "application/json");
+
+                    let resp = delete_customer_req.send().await;
+
+                    match resp {
+                        Ok(resp) => {
+                            if resp.status() == 204 {
+                                link.send_message(Msg::DeleteResponse(Ok(())));
+                            } else {
+                                link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                    "Failed to delete customer: {:?}",
+                                    resp
+                                ))));
+                            }
+                        }
+                        Err(err) => {
+                            link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                "Failed to send request: {}",
+                                err
+                            ))));
+                        }
+                    }
+                });
+                false
+            }
+            Msg::DeleteResponse(Ok(_)) => {
+                link.navigator().unwrap().push(&Route::CustomerList);
+                false
+            }
+            Msg::DeleteResponse(Err(err)) => {
+                log::error!("Failed to delete customer: {:?}", err);
+                false
             }
         }
     }

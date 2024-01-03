@@ -2,8 +2,9 @@ use crate::app::{AppLink, Route};
 use common::invoice::{InvoiceResponse, InvoiceStatus};
 use common::payment::PaymentResponse;
 use gloo_net::http::Request;
-use material_yew::{MatButton, MatCircularProgress};
+use material_yew::{MatButton, MatCircularProgress, MatIconButton};
 use yew::{html, AttrValue, Component, Context, Html, Properties};
+use yew_router::scope_ext::RouterScopeExt;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct DetailProps {
@@ -16,15 +17,19 @@ pub struct Detail {
 }
 
 pub enum Msg {
-    GetInvoiceRequest,
-    GetInvoiceResponse(Result<InvoiceResponse, anyhow::Error>),
+    GetRequest,
+    GetResponse(Result<InvoiceResponse, anyhow::Error>),
     GetPaymentsRequest,
     GetPaymentsResponse(Result<Vec<PaymentResponse>, anyhow::Error>),
+    DeleteRequest(u32),
+    DeleteResponse(Result<(), anyhow::Error>),
 }
 
 impl Detail {
     fn render_invoice(&self, ctx: &Context<Detail>) -> Html {
         if let Some(invoice) = &self.invoice {
+            let invoice_id = invoice.id;
+
             html! {
                 <table class="tftable" border="1">
                     <thead>
@@ -35,6 +40,7 @@ impl Detail {
                             <th>{ "Due Date" }</th>
                             <th>{ "Amount" }</th>
                             <th>{ "Status" }</th>
+                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
 
@@ -50,6 +56,11 @@ impl Detail {
                             <td>{ invoice.due_date.format("%Y-%m-%d").to_string() }</td>
                             <td>{ &invoice.amount }</td>
                             <td>{ &invoice.status }</td>
+                            <td>
+                                 <button class="btn-danger" onclick={ctx.link().callback(move |_| Msg::DeleteRequest(invoice_id))}>
+                                     <MatIconButton icon="delete" />
+                                 </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -105,7 +116,7 @@ impl Component for Detail {
     type Properties = DetailProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        ctx.link().send_message(Msg::GetInvoiceRequest);
+        ctx.link().send_message(Msg::GetRequest);
         ctx.link().send_message(Msg::GetPaymentsRequest);
 
         Self {
@@ -119,7 +130,7 @@ impl Component for Detail {
         let props = ctx.props().clone();
 
         match msg {
-            Msg::GetInvoiceRequest => {
+            Msg::GetRequest => {
                 log::info!("Fetching invoice with id {}", props.id);
 
                 wasm_bindgen_futures::spawn_local(async move {
@@ -137,16 +148,16 @@ impl Component for Detail {
                                     anyhow::anyhow!("Failed to parse response: {}", err)
                                 });
 
-                                link.send_message(Msg::GetInvoiceResponse(invoice));
+                                link.send_message(Msg::GetResponse(invoice));
                             } else {
-                                link.send_message(Msg::GetInvoiceResponse(Err(anyhow::anyhow!(
+                                link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                     "Failed to get invoice: {:?}",
                                     resp
                                 ))));
                             }
                         }
                         Err(err) => {
-                            link.send_message(Msg::GetInvoiceResponse(Err(anyhow::anyhow!(
+                            link.send_message(Msg::GetResponse(Err(anyhow::anyhow!(
                                 "Failed to get invoice: {:?}",
                                 err
                             ))));
@@ -155,11 +166,11 @@ impl Component for Detail {
                 });
                 false
             }
-            Msg::GetInvoiceResponse(Ok(invoice)) => {
+            Msg::GetResponse(Ok(invoice)) => {
                 self.invoice = Some(invoice);
                 true
             }
-            Msg::GetInvoiceResponse(Err(err)) => {
+            Msg::GetResponse(Err(err)) => {
                 log::error!("Failed to get invoice: {}", err);
                 false
             }
@@ -206,6 +217,48 @@ impl Component for Detail {
             }
             Msg::GetPaymentsResponse(Err(err)) => {
                 log::error!("Failed to get payments: {}", err);
+                false
+            }
+            Msg::DeleteRequest(id) => {
+                log::info!("Deleting invoice with id {}", id);
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    let delete_invoice_req = Request::delete(
+                        format!("http://localhost:8000/api/invoice/{}", id).as_str(),
+                    )
+                    .header("Content-Type", "application/json");
+
+                    let resp = delete_invoice_req.send().await;
+
+                    match resp {
+                        Ok(resp) => {
+                            if resp.status() == 204 {
+                                link.send_message(Msg::DeleteResponse(Ok(())));
+                            } else {
+                                link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                    "Failed to delete invoice: {:?}",
+                                    resp
+                                ))));
+                            }
+                        }
+                        Err(err) => {
+                            link.send_message(Msg::DeleteResponse(Err(anyhow::anyhow!(
+                                "Failed to send request: {}",
+                                err
+                            ))));
+                        }
+                    }
+                });
+                false
+            }
+            Msg::DeleteResponse(Ok(_)) => {
+                link.navigator().unwrap().push(&Route::ContractDetail {
+                    id: self.invoice.as_ref().unwrap().contract_id,
+                });
+                false
+            }
+            Msg::DeleteResponse(Err(err)) => {
+                log::error!("Failed to delete invoice: {:?}", err);
                 false
             }
         }
