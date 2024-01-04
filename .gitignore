@@ -4,3 +4,4 @@ frontend/target
 common/target
 target
 .idea/
+frontend/dist
