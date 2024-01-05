@@ -52,8 +52,8 @@ impl Detail {
                                     { &invoice.contract_id }
                                 </AppLink>
                             </td>
-                            <td>{ invoice.issue_date.format("%Y-%m-%d").to_string() }</td>
-                            <td>{ invoice.due_date.format("%Y-%m-%d").to_string() }</td>
+                            <td>{ invoice.issue_date.format("%m-%d-%Y").to_string() }</td>
+                            <td>{ invoice.due_date.format("%m-%d-%Y").to_string() }</td>
                             <td>{ &invoice.amount }</td>
                             <td>{ &invoice.status }</td>
                             <td>
@@ -105,7 +105,7 @@ impl Detail {
             <tr>
                 <td>{ &payment.id }</td>
                 <td>{ &payment.amount }</td>
-                <td>{ payment.payment_date.format("%Y-%m-%d").to_string() }</td>
+                <td>{ payment.payment_date.format("%m-%d-%Y").to_string() }</td>
             </tr>
         }
     }

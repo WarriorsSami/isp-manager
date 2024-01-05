@@ -121,8 +121,8 @@ impl Detail {
                         { &contract.subscription_id }
                     </AppLink>
                 </td>
-                <td>{ contract.start_date.format("%Y-%m-%d").to_string() }</td>
-                <td>{ contract.end_date.format("%Y-%m-%d").to_string() }</td>
+                <td>{ contract.start_date.format("%m-%d-%Y").to_string() }</td>
+                <td>{ contract.end_date.format("%m-%d-%Y").to_string() }</td>
                 <td>
                     <AppLink to={Route::ContractDetail { id: contract.id }}>
                         <button class="btn-info">
@@ -178,8 +178,8 @@ impl Detail {
             <tr>
                  <td>{ &invoice.id }</td>
                  <td>{ &invoice.contract_id }</td>
-                 <td>{ invoice.issue_date.format("%Y-%m-%d").to_string() }</td>
-                 <td>{ invoice.due_date.format("%Y-%m-%d").to_string() }</td>
+                 <td>{ invoice.issue_date.format("%m-%d-%Y").to_string() }</td>
+                 <td>{ invoice.due_date.format("%m-%d-%Y").to_string() }</td>
                  <td>{ &invoice.amount }</td>
                  <td>
                      <AppLink to={Route::InvoiceDetail { id: invoice.id }}>

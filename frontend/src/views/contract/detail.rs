@@ -58,8 +58,8 @@ impl Detail {
                                     { &contract.subscription_id }
                                 </AppLink>
                             </td>
-                            <td>{ contract.start_date.format("%Y-%m-%d").to_string() }</td>
-                            <td>{ &contract.end_date.format("%Y-%m-%d").to_string() }</td>
+                            <td>{ contract.start_date.format("%m-%d-%Y").to_string() }</td>
+                            <td>{ &contract.end_date.format("%m-%d-%Y").to_string() }</td>
                             <td>
                                 <AppLink to={Route::ContractEdit { id: contract.id }}>
                                     <button class="btn-warning">
@@ -119,8 +119,8 @@ impl Detail {
         html! {
             <tr>
                  <td>{ &invoice.id }</td>
-                 <td>{ invoice.issue_date.format("%Y-%m-%d").to_string() }</td>
-                 <td>{ invoice.due_date.format("%Y-%m-%d").to_string() }</td>
+                 <td>{ invoice.issue_date.format("%m-%d-%Y").to_string() }</td>
+                 <td>{ invoice.due_date.format("%m-%d-%Y").to_string() }</td>
                  <td>{ &invoice.amount }</td>
                  <td>{ &invoice.status }</td>
                  <td>
