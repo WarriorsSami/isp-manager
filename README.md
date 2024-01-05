@@ -31,6 +31,9 @@ You can visit the frontend by going to http://127.0.0.1:8080.
 The db connection is fostered using [Rust-oracle](https://crates.io/crates/oracle) - a safe Oracle driver for the Rust programming language and
 [R2d2-oracle](https://crates.io/crates/r2d2-oracle) - a connection pool for Oracle using Rust r2d2 pool manager.
 
+The [Rust-oracle](https://crates.io/crates/oracle) driver is built on top of the [ODPI-C](https://oracle.github.io/odpi/) library which is a wrapper around 
+the [OCI](https://www.oracle.com/database/technologies/appdev/oci.html) API - the comprehensive, high performance, native C language interface to Oracle Database for custom or packaged applications.
+
 Upon launching the server, the database connection pool is initialized and the database schema is created if it doesn't exist using the predefined SQL scripts from the `./backend/db-scripts` folder.
 
 ```rust
