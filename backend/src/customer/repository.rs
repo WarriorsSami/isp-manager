@@ -148,7 +148,7 @@ pub async fn fetch_unpaid_invoices_proc(db_pool: &DBPool, id: u32) -> Result<Vec
     let mut stmt = con.statement(query).build().map_err(Error::DBQuery)?;
     stmt.execute_named(&[("id", &id)]).map_err(Error::DBQuery)?;
 
-    let mut opt_cursor = stmt.implicit_result().map_err(Error::DBQuery)?;
+    let opt_cursor = stmt.implicit_result().map_err(Error::DBQuery)?;
     let mut invoices = Vec::new();
 
     if let Some(mut cursor) = opt_cursor {
@@ -158,8 +158,6 @@ pub async fn fetch_unpaid_invoices_proc(db_pool: &DBPool, id: u32) -> Result<Vec
             .map(|r| row_to_invoice(&r.unwrap()))
             .collect();
     }
-
-    log::debug!("invoices: {:?}", invoices);
 
     Ok(invoices)
 }
