@@ -56,7 +56,7 @@ pub async fn create(db_pool: &DBPool, body: CreateContractRequest) -> Result<Con
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(Error::DBQuery)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con

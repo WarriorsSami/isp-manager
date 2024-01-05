@@ -20,8 +20,6 @@ pub mod application {
         DBInit(oracle::Error),
         #[error("error reading file: {0}")]
         ReadFile(#[from] std::io::Error),
-        #[error("error executing DB statement")]
-        DBStatement,
         #[error("customer {0} not found")]
         CustomerNotFound(u32),
         #[error("contract {0} not found")]

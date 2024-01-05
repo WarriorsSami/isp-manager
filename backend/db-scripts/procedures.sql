@@ -1,3 +1,17 @@
+-- retrieve the unpaid invoices for the given customer using a procedure
+
+CREATE OR REPLACE PROCEDURE get_unpaid_invoices_proc(p_customer_id IN NUMBER,
+                                                     p_invoices OUT SYS_REFCURSOR)
+AS
+BEGIN
+    OPEN p_invoices FOR
+        SELECT i.*
+        FROM invoice i
+                 JOIN contract c ON i.CONTRACT_ID = c.ID
+        WHERE c.CUSTOMER_ID = p_customer_id
+          AND i.STATUS = 'UNPAID';
+END get_unpaid_invoices_proc;
+
 -- retrieve the unpaid invoices for the given customer using a pipelined function
 
 CREATE OR REPLACE TYPE invoice_row AS OBJECT
@@ -32,11 +46,11 @@ END get_unpaid_invoices;
 
 CREATE OR REPLACE TYPE contract_row AS OBJECT
 (
-    id          NUMBER,
-    customer_id NUMBER,
+    id              NUMBER,
+    customer_id     NUMBER,
     subscription_id NUMBER,
-    start_date  DATE,
-    end_date    DATE
+    start_date      DATE,
+    end_date        DATE
 );
 
 CREATE OR REPLACE TYPE contract_table AS TABLE OF contract_row;
@@ -75,10 +89,10 @@ END get_invoices;
 
 CREATE OR REPLACE TYPE payment_row AS OBJECT
 (
-    id          NUMBER,
-    invoice_id  NUMBER,
-    amount      NUMBER,
-    payment_date  DATE
+    id           NUMBER,
+    invoice_id   NUMBER,
+    amount       NUMBER,
+    payment_date DATE
 );
 
 CREATE OR REPLACE TYPE payment_table AS TABLE OF payment_row;
@@ -91,7 +105,8 @@ BEGIN
                         FROM payment
                         WHERE INVOICE_ID = p_invoice_id)
         LOOP
-            PIPE ROW (payment_row(payment_rec.ID, payment_rec.INVOICE_ID, payment_rec.AMOUNT, payment_rec.PAYMENT_DATE));
+            PIPE ROW (payment_row(payment_rec.ID, payment_rec.INVOICE_ID, payment_rec.AMOUNT,
+                                  payment_rec.PAYMENT_DATE));
         END LOOP;
     RETURN;
 END get_payments;

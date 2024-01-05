@@ -59,7 +59,7 @@ pub async fn create(db_pool: &DBPool, body: CustomerRequest) -> Result<Customer>
         return Err(Error::DBQuery(e));
     }
 
-    let row_id: u32 = stmt.returned_values("id").map_err(|_| Error::DBStatement)?[0];
+    let row_id: u32 = stmt.returned_values("id").map_err(Error::DBQuery)?[0];
     let query = format!("SELECT {} FROM {} WHERE id = :id", SELECT_FIELDS, TABLE);
 
     let row = con
@@ -132,6 +132,36 @@ pub async fn fetch_unpaid_invoices(db_pool: &DBPool, id: u32) -> Result<Vec<Invo
         .filter(|r| r.is_ok())
         .map(|r| row_to_invoice(&r.unwrap()))
         .collect())
+}
+
+pub async fn fetch_unpaid_invoices_proc(db_pool: &DBPool, id: u32) -> Result<Vec<Invoice>> {
+    let con = get_db_con(db_pool).await?;
+    let query = r#"
+        DECLARE
+            invoices_cursor SYS_REFCURSOR;
+        BEGIN
+            GET_UNPAID_INVOICES_PROC(:id, invoices_cursor);
+            DBMS_SQL.RETURN_RESULT(invoices_cursor);
+        END;
+    "#;
+
+    let mut stmt = con.statement(query).build().map_err(Error::DBQuery)?;
+    stmt.execute_named(&[("id", &id)]).map_err(Error::DBQuery)?;
+
+    let mut opt_cursor = stmt.implicit_result().map_err(Error::DBQuery)?;
+    let mut invoices = Vec::new();
+
+    if let Some(mut cursor) = opt_cursor {
+        let rows = cursor.query().map_err(Error::DBQuery)?;
+        invoices = rows
+            .filter(|r| r.is_ok())
+            .map(|r| row_to_invoice(&r.unwrap()))
+            .collect();
+    }
+
+    log::debug!("invoices: {:?}", invoices);
+
+    Ok(invoices)
 }
 
 pub async fn fetch_contracts(db_pool: &DBPool, id: u32) -> Result<Vec<Contract>> {

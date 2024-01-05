@@ -29,7 +29,7 @@ pub async fn fetch_customer_handler(id: u32, db_pool: DBPool) -> Result<impl Rep
 pub async fn list_customer_unpaid_invoices_handler(id: u32, db_pool: DBPool) -> Result<impl Reply> {
     log::info!("Listing unpaid invoices for customer with id {}", id);
 
-    let invoices = repository::fetch_unpaid_invoices(&db_pool, id)
+    let invoices = repository::fetch_unpaid_invoices_proc(&db_pool, id)
         .await
         .map_err(reject::custom)?;
     Ok(json::<Vec<_>>(
